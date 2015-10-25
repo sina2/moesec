@@ -2575,14 +2575,7 @@ EOM
 
 	if(!$html_write){
 
-if(($ENV{'HTTP_ACCEPT_ENCODING'}=~/gzip/) &&($gzip == 1)){
-$|=1;
-	print "Content-type: text/html\n";
-	print "Content-encoding: gzip\n\n";
-	open(STDOUT,"| /bin/gzip -1 -c");
-}else{
 	print "Content-type: text/html\n\n";
-}
 		print "$header";
 	}elsif(!$page_cnt){
 		$header .= "$count_src";
