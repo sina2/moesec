@@ -315,10 +315,6 @@ sub html_log {
 
 if ($mode eq "B") {$ds_on="&ds=on";}
 
-	# 過去ログのリンク部を表示
-	if ($pastkey) {
-		$past_mode="[<a href=\"$past_log\">過去ログ</a>]";
-	}
 if($hari_mode){
 if($bgm_up){$bgm_tk="・BGM";}
 $hari_ex="[<a href=\"$script?new_topic=gazou&bg_img=$bg_img$ds_on\"><B>画像$bgm_tk貼\り付け</B></a>]";
@@ -975,11 +971,7 @@ sub regist {
 			}
 
 			elsif(($img) && (-e "$img")){ unlink("$img"); }
-			if ($pastkey == 0) { last; }
-			else {
-				if ($k eq "") { $kflag=1; push(@past_data,$line); }
-				else { push(@past_res,$line); }
-			}
+
 		    }
 		    if ($stop == 0) { push(@new,$line); }
 		}
@@ -2671,152 +2663,7 @@ sub get_host {
 	if ($host eq "") { $host = $addr; }
 }
 
-## --- 過去ログ生成
-sub pastlog {
-	$new_flag = 0;
 
-	# 過去NOを開く
-	#open(NO,"$nofile") || &error("Can't open $nofile");
-	sysopen(NO,"$nofile",O_RDONLY) || &error("Can't open $nofile");
-	$count = <NO>;
-	close(NO);
-
-	# 過去ログのファイル名を定義
-	$past_dir =~ s/\/$//;
-	$pastfile  = "$past_dir\/$count\.html";
-
-	# 過去ログがない場合、新規に自動生成する
-	unless(-e $pastfile) { &new_log; }
-
-	# 過去ログを開く
-	if ($new_flag == 0) {
-		#open (IN,"$pastfile") || &error("Can't open $pastfile");
-		sysopen (IN,"$pastfile",O_RDONLY) || &error("Can't open $pastfile");
-		@past = <IN>;
-		close(IN);
-	}
-
-	# 規定の行数をオーバーすると、次ファイルを自動生成する
-	if ($#past > $log_line) { &next_log; }
-
-	foreach $pst_line (@past_data) {
-		$w_vt = 0;@w_vt=();
-		($pnum,$pk,$pdt,$pname,$pemail,
-			$psub,$pcom,$purl,$phost,$ppw) = split(/<>/, $pst_line);
-
-		($pemail,$p_m_ex) = split(/>/,$pemail);
-
-		if ($pemail && $p_m_ex) { $pname = "<a href=\"mailto:$pemail\">$pname</a>"; }
-		if ($purl) { $purl="<a href=\"http://$purl\" target='_top'>http://$purl</a>"; }
-		if ($pk) { $pnum = "$pkへのレス"; }
-		elsif(@past_vt){
-			foreach(@past_vt){
-				if($w_vt){
-					if($_ =~ /^\d$/){last;}
-					push(@w_vt,$_);
-				}
-				if($pnum == $_){$w_vt = 1;}
-			}
-			if(@w_vt){
-				$vt_com = "<br><br>";
-				$vt_com .= "投票結果<br><table border=1 cellspacing=0 bordercolor=black>\n";
-				$vt_com .= "<tr><th>順位</th><th>項目</th><th>人数</th></tr>\n";
-				foreach(@w_vt){
-					($vt1,$vt2) = split(/\t/,$_);
-					$sort_vt{$vt1} = $vt2;
-				}
-	
-				@sort_vt = sort {$sort_vt{$b} <=> $sort_vt{$a}} keys(%sort_vt);
-
-				foreach(@sort_vt){
-					++$rk;
-					if($nex_jg == $sort_vt{$_}){
-						if($next_num){
-							$ex_num = $next_num;
-						}else{
-							$next_num = $rk; $ex_num = --$next_num;
-						}
-					}else{
-						$next_num=0;$ex_num = $rk;
-					}
-
-					$nex_jg = $sort_vt{$_};
-					$vt_com .= "<tr><td>$ex_num</td><td>$_</td><td>$sort_vt{$_}人</td></tr>\n";
-				}
-				$vt_com .= "</table>";
-				$pcom = "$pcom$vt_com";
-			}
-		}
-
-		# 自動リンク
-		if ($auto_link) {
-$pcom =~ s/<br>/\r/g;
-&auto_link($pcom);
-$pcom =~ s/\r/<br>/g;
-		}
-
-		# 保存記事をフォーマット
-		$html = <<"HTML";
-[$pnum] <font color=\"$sub_color\"><b>$psub</b></font><!--T--> 投稿者：<font color=\"$link\"><b>$pname</b></font> <small>投稿日：$pdt</small><p><blockquote>$pcom<p>$purl</blockquote><hr>
-HTML
-		push(@htmls,"$html");
-	}
-
-	
-	@news = ();
-	foreach $line (@past) {
-		if ($line =~ /<!--OWARI-->/i) { last; }
-		push (@news,$line);
-		if ($line =~ /<!--HAJIME-->/i) { push (@news,@htmls); }
-	}
-	if($nobanner){$kbn = "<noembed>";}
-	push (@news,"<!--OWARI-->\n</body></html>$kbn\n");
-
-	# 過去ログを更新
-	#open(OUT,">$pastfile") || &error("Can't write $pastfile");
-	sysopen(OUT,"$pastfile", O_WRONLY | O_TRUNC | O_CREAT ) || &error("Can't write $pastfile");
-	print OUT @news;
-	close(OUT);
-
-}
-
-## --- 過去ログ次ファイル生成ルーチン
-sub next_log {
-	# 次ファイルのためのカウントアップ
-	$count++;
-
-	# カウントファイル更新
-	#open(NO,">$nofile") || &error("Can't write $nofile");
-	sysopen(NO,"$nofile",O_WRONLY|O_TRUNC | O_CREAT ) || &error("Can't write $nofile");
-	print NO "$count";
-	close(NO);
-
-	$past_dir =~ s/\/$//;
-	$pastfile  = "$past_dir\/$count\.html";
-
-	&new_log;
-}
-
-## --- 新規過去ログファイル生成ルーチン
-sub new_log {
-	$new_flag = 1;
-
-	if ($backgif) { $bgkey = "background=\"$backgif\" bgcolor=$bgcolor"; }
-	else { $bgkey = "bgcolor=$bgcolor"; }
-	if($nobanner){$kbn = "<noembed>";}
-	$past[0] = "<html><head><META HTTP-EQUIV=\"Content-type\" CONTENT=\"text/html\; charset=utf-8\"><title>過去ログ</title></head>\n";
-	$past[1] = "<body $bgkey text=$text link=$link vlink=$vlink alink=$alink><hr size=1>\n";
-	$past[2] = "<\!--HAJIME-->\n";
-	$past[3] = "<\!--OWARI-->\n";
-	$past[4] = "</body></html>$kbn\n";
-
-	# 新規過去ログファイルを生成更新
-	#open(OUT,">$pastfile") || &error("Can't write $pastfile");
-	sysopen(OUT,"$pastfile",O_WRONLY | O_TRUNC | O_CREAT) || &error("Can't write $pastfile");
-	print OUT @past;
-	close(OUT);
-
-}
 
 #------------#
 #  編集画面  #

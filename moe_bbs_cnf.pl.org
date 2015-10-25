@@ -236,21 +236,6 @@ $banner1 = '<!--上部-->';
 # タグ広告挿入オプション下部 (FreeWebなど）
 $banner2 = '<!--下部-->';
 
-# 過去ログ生成 (0=no 1=yes)
-$pastkey = '0';
-
-# 過去ログ用NOファイル
-$nofile = './moelog/pastno.dat';
-
-# 過去ログのディレクトリ
-$past_dir = './past_log/';
-
-# 過去ログ行数
-$log_line = '1500';
-
-# 過去ログ管理ファイル
-$past_log = './past_log.cgi';
-
 # ランダム文字列精製用ストリングテーブル
 $st_table = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIGKLMNOPQRSTUVWXYZ1234567890';
 
