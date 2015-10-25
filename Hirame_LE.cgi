@@ -4241,10 +4241,6 @@ print <<EOM;
 (バックアップをとった後に実行して下さい)
 </td></tr>
 <tr><td><br></td></tr>
-<tr><td>
-<a href=\"ico_del.cgi?bg_img=$bg_img\">アイコン削除</a>
-(アイコンログないアイコンをアイコンディレクトリから削除します)
-</td></tr>
 <tr><td><br></td></tr>
 <tr><td>
 $bkex
