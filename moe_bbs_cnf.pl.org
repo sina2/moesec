@@ -215,21 +215,6 @@ $method = 'POST';
 # １ページ当たりの記事表示数 (親記事)
 $pagelog = '10';
 
-# メールフォーム機能を使う (0=no 1=yes)<br>sendmail必須
-$mlfm = '0';
-
-# 投稿があるとメール通知する (0=no 1=yes)<br>sendmail必須
-$mailing = '0';
-
-# 管理人メールアドレス
-$mailto = '';
-
-# sendmailパス（メールフォームで必要）
-$sendmail = '/usr/sbin/sendmail';
-
-# 自分の投稿記事はメール通知する (0=no 1=yes)
-$mail_me = '0';
-
 # 他サイトから投稿排除時に指定 (http://から書く)
 $base_url = '';
 

@@ -201,7 +201,6 @@ if ($mode eq "usr_rest") {&usr_rest; }
 if ($mode eq "Reg_usr_rest") { &usr_rest2; }
 if ($mode eq "pass_rest") { &pass_rest; }
 if ($mode eq "bkup") { &bk_up; }
-if ($mode eq "mail"){ &mail;}
 if ($mode eq "mc_ex"){ &mc_ex;}
 if ($mode eq "swf"){ &swf;}
 if ($mode eq "convert"){ &convert;}
@@ -361,7 +360,6 @@ if($tg_mc && $vt_btn){
 	if(!$in{'vt_all'}){$vt_mc = "[<a href=\"$script?vt_all=on\">投票記事一覧</a>]";}
 	else{$vt_mc = "[<a href=\"$script?cnt=no\">通常表\示</a>]";}
 }
-if($mlfm){$ml_tmn = "[<a href=\"$script?mode=mail&bg_img=$bg_img\">め〜るふぉ〜む</a>]";}
 print <<EOM;
 <center>$banner1<P>
 $ti_gif
@@ -425,13 +423,7 @@ sub kiji_edit {
 	    $sname =~ s/@.*//;
 	    $sname =~ s/★.*//;
         
-		if(!$mlfm){
 			if($email){$name="<a href=\"mailto:$email\">$name</a>"}
-		}
-        else{
-			if ($email && $mail_ex) { $name = "<a href=\"$script?mode=mail&bg_img=$bg_img&num=$date\">$name</a>"; }
-			elsif ($email) { $name = "<a href=\"$script?mode=mail&bg_img=$bg_img&num=$date\">$name</a>"; }
-		}
 
 		# URL表示
 		if ($url && $home_icon) {
@@ -597,14 +589,8 @@ EOM
 	        $sname =~ s/@.*//;
 	        $sname =~ s/★.*//;
     
-			if(!$mlfm){
 				if($rem){$rname="<a href=\"mailto:$rem\">$rname</a>"}
-			}
-            else{
-				if ($rem && $mail_ex) { $rname = "<a href=\"$script?mode=mail&bg_img=$bg_img&num=$rd\">$rname</a>"; }
 
-				elsif ($rem) { $rname = "<a href=\"$script?mode=mail&bg_img=$bg_img&num=$rd\">$rname</a>"; }
-			}
             
 		    if ($number eq "$rk") {
 
@@ -731,10 +717,6 @@ sub regist {
 	# 名前とコメントは必須
 	if ($name eq "") { &error("名前が入力されていません",'NOLOCK'); }
 	if ($comment eq "") { &error("コメントが入力されていません",'NOLOCK'); }
-	if(!$mlfm && !$email){$in{mail_ex} = 0;}
-	if (($email || $in{mail_ex}) && $email !~ /(.*)\@(.*)\.(.*)/) {
-		&error("Ｅメールの入力内容が正しくありません",'NOLOCK');
-	}
 
 	# 管理アイコンのチェック
 	if ($my_icon && $icon eq "$my_gif") {
@@ -1124,9 +1106,6 @@ close(RL);
 
 	}
 
-	# メール処理
-	if ($mailing && $mail_me) { &mail_to; }
-	elsif ($mailing && $email ne "$mailto") { &mail_to; }
 
 ## HTML作成
 if($html_on){
@@ -1230,11 +1209,6 @@ sub res_msg {
 	# タイトル名
 	if ($resub !=~ /^Re\:/) { $resub = "Re\: $resub"; }
 
-	if($mlfm){
-		$mlad_e = "<input type=checkbox name=mail_ex value=on$c_m_ex> <b>メールアドレスを公開する</b>";
-	}else{
-		$mlad_e = "<input type=hidden name=mail_ex value=1>";
-	}
     $max_dat=int($cgi_lib'maxdata/1024);
     $mx_ex="<span>　</span>jpg,gif,png $max_dat KBまで";
 	print <<"EOM";
@@ -2440,49 +2414,6 @@ sub lock3 {
 	if (!$cnt_flag) { unlink($cntlock); }
 }
 
-## --- メール送信
-sub mail_to {
-	$mail_sub = "$title に投稿がありました";
-
-    	#&jcode'convert(*mail_sub,'jis');
-    	#&jcode'convert(*name,'jis');
-    	#&jcode'convert(*sub,'jis');
-    	#&jcode'convert(*comment,'jis');
-    	#Jcode::convert(*mail_sub,'jis');
-    	#Jcode::convert(*name,'jis');
-    	#Jcode::convert(*sub,'jis');
-    	#Jcode::convert(*comment,'jis');
-
-	$comment =~ s/<br>/\n/g;
-	$comment =~ s/&lt;/</g;
-	$comment =~ s/&gt;/>/g;
-
-	if (open(MAIL,"| $sendmail $mailto")) {
-	print MAIL "To: $mailto\n";
-
-	# メールアドレスがない場合はダミーメールに置き換え
-	if ($email eq "") { $email = "nomail\@xxx.xxx"; }
-
-	print MAIL "From: $email\n";
-	print MAIL "Subject: $mail_sub\n";
-	print MAIL "MIME-Version: 1.0\n";
-	print MAIL "Content-type: text/plain; charset=ISO-2022-JP\n";
-	print MAIL "Content-Transfer-Encoding: 7bit\n";
-	print MAIL "X-Mailer: $ver\n\n";
-	print MAIL "--------------------------------------------------------\n";
-	print MAIL "TIME : $date\n";
-	print MAIL "HOST : $host\n";
-	print MAIL "NAME : $name\n";
-	print MAIL "EMAIL: $email\n";
-
-	if ($url) { print MAIL "URL  : http://$url\n"; }
-
-	print MAIL "TITLE: $sub\n\n";
-	print MAIL "$comment\n";
-	print MAIL "--------------------------------------------------------\n";
-	close(MAIL);
-	}
-}
 
 ## --- パスワード暗号処理
 sub passwd_encode {
@@ -3150,11 +3081,6 @@ last;
 
 if($m_ex){$m_ex = " checked";}
 
-	if($mlfm){
-		$mlad_e = "<input type=checkbox name=mail_ex value=on$m_ex> <b>メールアドレスを公開する</b>";
-	}else{
-		$mlad_e = "<input type=hidden name=mail_ex value=1>";
-	}
 
 	print <<"EOM";
 <form method="$method" action="$script">
@@ -3388,10 +3314,6 @@ sub usr_rest2{
 	# 名前とコメントは必須
 	if ($name eq "") { &error("名前が入力されていません"); }
 	if ($comment eq "") { &error("コメントが入力されていません"); }
-	if(!$mlfm && !$email){$in{mail_ex} = 0;}
-	if (($email || $in{mail_ex}) && $email !~ /(.*)\@(.*)\.(.*)/) {
-		&error("Ｅメールの入力内容が正しくありません",'NOLOCK');
-	}
 
 	# 提供品チェックにチェックが入っているとき
 	if ($up_check eq 'on' && $up_comment eq ""){
@@ -3810,11 +3732,6 @@ $bgm_form= <<"EOM";
 EOM
 }
 
-	if($mlfm){
-		$mlad_e = "<input type=checkbox name=mail_ex value=on$c_m_ex> <b>メールアドレスを公開する</b>";
-	}else{
-		$mlad_e = "<input type=hidden name=mail_ex value=1>";
-	}
 
 &header;
 print <<EOM;
@@ -3955,11 +3872,6 @@ $bgm_form= <<"EOM";
 EOM
 }
 
-	if($mlfm){
-		$mlad_e = "<input type=checkbox name=mail_ex value=on$c_m_ex> <b>メールアドレスを公開する</b>";
-	}else{
-		$mlad_e = "<input type=hidden name=mail_ex value=1>";
-	}
 
 &header;
 print <<EOM;
@@ -4075,11 +3987,6 @@ $bgm_form= <<"EOM";
 EOM
 
 
-	if($mlfm){
-		$mlad_e = "<input type=checkbox name=mail_ex value=on$c_m_ex> <b>メールアドレスを公開する</b>";
-	}else{
-		$mlad_e = "<input type=hidden name=mail_ex value=1>";
-	}
 
 &header;
 print <<EOM;
@@ -4702,326 +4609,6 @@ print "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省�
 exit;
 }
 
-
-# メールフォーム
-sub mail{
-
-if($in{'mail_reg'}){&mail_send;}
-else{&mail_form;}
-
-sub mail_send{
-if(!$in{'name'}){$err1="お名前";}
-if(!$in{'email'}){$err2="e-mail";}
-if(!$in{'com'}){$err3="コメント";}
-if($err1 || $err2 || $err3){&error("$err1 $err2 $err3 が未記入です");}
-
-if($in{'email'} !~ /(\w|[\.\-\~])+@(\w|[\.\-\~])+/){&error("e-mailが不正です");}
-
-if(!@nums && !$in{ml_ad}){&error("チェックBOXにチェックが入っていません");}
-
-if(@nums){
-
-#open (LOG,"$logfile");
-sysopen(LOG,"$logfile",O_RDONLY);
-if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-@log = <LOG>;
-close(LOG);
-
-shift(@log);
-
-$mail_to = "";
-
-OUT : foreach $nms(@nums){
-($m_dt,$m_nm) = split (/p/,$nms);
-$ck_num = 0;
-
-	foreach(@log){
-	($d1,$d2,$d3,$d4,$d5) = split (/<>/,$_);
-
-		if($d3 eq $m_dt){
-		($d5) = split(/>/,$d5);
-		if(!$d5){push(@ml_err,$m_nm);next OUT;}
-		if($mail_to){$mail_to = "$mail_to".","."$d5";}else{$mail_to = $d5;}
-		$ck_num = 1;last;
-		}
-
-	}
-
-if(!$ck_num){push(@ml_rtr,$m_nm);}
-
-}
-
-OUT2 : foreach $rtr(@ml_rtr){
-$ck_num = 0;
-
-	foreach(@log){
-	($d1,$d2,$d3,$d4,$d5) = split (/<>/,$_);
-	$d4 =~ s/＠.*//;
-    $d4 =~ s/☆.*//;
-	$d4 =~ s/@.*//;
-	$d4 =~ s/★.*//;
-    
-		if($d4 eq $rtr){
-		($d5) = split(/>/,$d5);
-		if(!$d5){push(@ml_err,$rtr);next OUT2;}
-		if($mail_to){$mail_to = "$mail_to".","."$d5";}else{$mail_to = $d5;}
-		$ck_num = 1;last;
-		}
-
-	}
-
-if(!$ck_num){push(@ml_err,$rtr);}
-
-}
-
-}
-
-if($in{ml_ad}){if($mail_to){$mail_to = "$mail_to".","."$mailto";}else{$mail_to = $mailto;}}
-
-if(!$mail_to){&error("対象記事が編集もしくは削除されたため送信できませんでした");}
-
-if($in{self}){$mail_to = "$mail_to".","."$in{email}";}
-
-if($in{mail_file}){
-$fi = $in[6];
-$fi =~ s/\s//g;$_ =~ s/\n//g;
-
-if($fi =~ /(.*)name=\"mail_file\"(.*)filename=\"(.*)\"Content-Type:(.*)/){
-$f_name_tmp = $3;
-$c_type = $4;
-}
-if($f_name_tmp =~ /\\([^\\]+)$/){$f_name = $1;}
-
-$pre_file = &base64encode($in{mail_file});
-
-while($pre_file){
-$pic_file = substr($pre_file,0,76);
-$pre_file = substr($pre_file,76);
-$new_file .= "$pic_file\n";
-}
-
-$file_up = "--_kugiri_\n";
-$file_up .="Content-Type: $c_type;\n";
-$file_up .="\tname=\"$f_name\"\n";
-$file_up .="Content-Transfer-Encoding: base64\n";
-$file_up .="Content-Disposition: attachment\;\n";
-$file_up .="\tfilename=\"$f_name\"\n\n";
-$file_up .="$new_file\n";
-$file_up .="--_kugiri_--";
-
-$mix = "Mime-Version: 1.0\n";
-$mix .="Content-Type: multipart/mixed; boundary=\"_kugiri_\"\n";
-$mix .="X-Mailer: Moe_Moe_Board-Mailer\n\n";
-$mix .="This is a multi-part message in MIME format.\n\n";
-$mix .="--_kugiri_";
-
-}
-
-&st_ck;
-
-$in{'name'} = &mail64encode($in{'name'});
-if($in{'title'}){$in{'title'} = &mail64encode($in{'title'});}
-
-open(ML,"| $sendmail $mailto") || &error("sendmail失敗〜");
-print ML "From: $in{'name'}<$in{email}>\n";
-print ML "Bcc: $mail_to\n";
-print ML "Subject: $in{'title'}\n";
-	if($mix){print ML "$mix\n";
-	}else{
-	print ML "X-Mailer: Moe_Moe_Board-Mailer\n";
-	print ML "Mime-Version: 1.0\n";
-	}
-print ML "Content-type:text/plain; charset=iso-2022-jp\n";
-print ML "Content-Transfer-Encoding: 7bit\n\n";
-print ML "$in{'com'}\n\n";
-if($file_up){print ML "$file_up\n";}
-close (ML);
-
-&header;
-if($f_name){$f_name = "<tr><td><b>添付ファイル：$f_name</b></td></tr>";}
-
-if(@ml_err){
-foreach(@ml_err){if($mler){$mler = "$mler".","."$_";}else{$mler = $_;}}
-$mler = "<tr><td><br></td></tr><tr><td><b><font color=red>注！</font>：$mler\さんへのメー\ル送信は、対象記事が編集もしくは削除されたため送信できませんでした</b></td></tr>";
-}
-
-print <<EOM;
-<font size=-2>[<a href=\"$script?cnt=no\">掲示板に戻る</a>]</font>
-<center><font color=blue><B>たぶん送信されました（ｗ</B></font><br><br>
-<table width="80%" bgcolor="white" border=1 cellspacing=0 bordercolor=black>
-<tr><td>
-<center><table width="80%">
-<tr><td align=left><b>送信者：$s_in{name}&lt;$in{email}&gt;<br>
-件名：$s_in{title}</b>
-<hr>
-$s_in{com}
-</td></tr>
-$f_name
-$mler
-</table>
-</center>
-</td></tr>
-</table>
-</center>
-EOM
-&footer;
-exit;
-
-}
-
-sub mail_form{
-$max_dat=int($cgi_lib'maxdata/1024);
-
-#open(LOG,"$logfile") || &error("Can't open $logfile",'NOLOCK');
-sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile",'NOLOCK');
-@log = <LOG>;
-close(LOG);
-shift(@log);
-reverse(@log);
-
-if($in{num}){
-	foreach(@log){
-		($d1,$d2,$m_date,$m_name,$m_mail) = split(/<>/,$_);
-		if($in{num} eq "$m_date"){
-			$m_name =~ s/＠.*//;
-            $m_name =~ s/☆.*//;
-	        $m_name =~ s/@.*//;
-	        $m_name =~ s/★.*//;
-	        if($m_mail){($mail_a,$mail_e) = split(/>/,$m_mail);}
-			last;
-		}
-	}
-	if(!$mail_a){&error("対象記事がありません");}
-}
-
-if($mail_e){$in_sname = "<a href =\"mailto:$mail_a\">$m_name</a>";}else{$in_sname = "$m_name";}
-if($mail_a){
-$s_name = "<blockquote><b>$in_snameさんへメールを送ります</b></blockquote>";
-$s_names = "<input type=hidden name=nums value=\"$in{num}\p$m_name\">";
-}else{
-
-	foreach(@log){
-	($d1,$d2,$m_date,$m_name,$m_mail) = split(/<>/,$_);
-	$m_name =~ s/＠.*//;
-    $m_name =~ s/☆.*//;
-	$m_name =~ s/@.*//;
-	$m_name =~ s/★.*//;
-	if($m_mail){$mail_es{$m_name} = "$m_date";}
-	}
-
-$s_names = "<b>メールを送りたい方にチェック（複数OK）をつけてください。</b><br><table><tr>";$rt = 0;
-
-	foreach(sort keys %mail_es){
-	if($rt){$rtg = $rt % 5;}
-	if(!$rtg && $rt){$s_names = "$s_names"."</tr><tr>";}
-	++$rt;
-	$s_names = "$s_names"."<td><input type=checkbox name=nums value=\"$mail_es{$_}\p$_\">$_\さん</td>";
-	}
-
-if($rt){$rtg = $rt % 5;}
-if(!$rtg){$s_names = "$s_names"."</tr><tr>";}
-$s_names = "$s_names"."<td><input type=checkbox name=ml_ad value=on>管理人</td>";
-$s_names = "$s_names"."</tr></table><br>";
-}
-
-&gt_ck;
-&header;
-print <<EOM;
-<center><h3><font color=blue face="HGP創英角ﾎﾟｯﾌﾟ体">め〜るふぉ〜む</font></h3></center>
-<br>
-<blockquote>
-<form action=$script method=POST enctype=multipart/form-data>
-<input type=hidden name=mode value=mail>
-<input type=hidden name=mail_reg value=on>
-<input type=hidden name=bg_img value=$bg_img>
-$s_name
-<table>
-<tr><th align=left>お名前</th><td><input type=text name=name value=\"$ck_in{'name'}\"></td><tr>
-<tr><th align=left>e-mail</th><td><input type=text name=email value=\"$ck_in{'email'}\"></td><tr>
-<tr><th align=left>件名</th><td><input type=text size=30 name=title></td><tr>
-<tr><th align=left>添付ファイル</th><td><input type=file name=mail_file><span>　</span>なんでも $max_dat KBまで</td><tr>
-<tr><th align=left colspan=2><input type=checkbox name=self value=on checked> 自分にもメールを送信する</th></tr>
-</table>
-<b>コメント</b><br>
-<textarea name=com cols=60 rows=10></textarea>
-<br><br>
-$s_names
-<input type=submit value="ぽちっとね（ｗ">
-</form>
-EOM
-&footer;
-exit;
-}
-
-# メール用クッキーの発行
-sub st_ck{
-
-($secg,$ming,$hourg,$mdayg,$mong,$yearg,$wdayg,$dmy) = gmtime(time + 60*24*60*60);
-
-@week = ('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
-@mons = ('Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec');
-$date_g = sprintf("%s, %02d\-%s\-%04d %02d:%02d:%02d GMT",$week[$wdayg],$mdayg,$mons[$mong],$yearg+1900,$hourg,$ming,$secg);
-
-$cook="name\:$s_in{'name'}\,email\:$in{'email'}";
-print "Set-Cookie: MAIL=$cook; expires=$date_g\n";
-
-}
-
-# メール用クッキーを取得
-sub gt_ck{
-
-@pairs = split(/;/,$ENV{'HTTP_COOKIE'});
-
-	foreach $pair (@pairs) {
-	local($name, $value) = split(/=/, $pair);
-	$name =~ s/ //g;
-	$ck_name{$name} = $value;
-	}
-
-@pairs = split(/,/,$ck_name{'MAIL'});
-
-	foreach $pair (@pairs) {
-	local($name, $value) = split(/:/, $pair);
-
-	# 文字コードをEUC変換 #
-	#&jcode'convert(*value,'euc');
-        #Jcode::convert(*value,'euc');
-
-	$ck_in{$name} = $value;
-	}
-
-}
-
-# MIMEエンコード とほほさんのページから引用
-
-sub mail64encode {
-  local($xx) = $_[0];
-  #&jcode'convert(*xx, "jis");
-  #Jcode::convert(*xx, "jis");
-  $xx = Encode::encode('iso-2022-jp-1',$xx);
-
-  $xx =~ s/\x1b\x28\x42/\x1b\x28\x4a/g; # 不要かも
-  $xx = &base64encode($xx);
-  return("=?iso-2022-jp?B?$xx?=");
-}
-
-sub base64encode {
-  local($base) = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-               . "abcdefghijklmnopqrstuvwxyz"
-               . "0123456789+/";
-  local($xx, $yy, $zz, $i);
-  $xx = unpack("B*", $_[0]);
-  for ($i = 0; $yy = substr($xx, $i, 6); $i += 6) {
-    $zz .= substr($base, ord(pack("B*", "00" . $yy)), 1);
-    if (length($yy) == 2) {
-      $zz .= "==";
-    } elsif (length($yy) == 4) {
-      $zz .= "=";
-    }
-  }
-  return($zz);
-}
-}
 
 # タグマクロ説明
 sub mc_ex{
