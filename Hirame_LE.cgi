@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -T
 
 # jcode.plが同一ディレクトリにある場合
 #require './jcode.pl';
