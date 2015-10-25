@@ -269,15 +269,6 @@ $bk_pm = '0606';
 # レス時にも画像を貼りつけをする
 $res_up = '0';
 
-# 揚げ板機能 (0=no 1=yes)
-$UP_Pl = '0';
-
-# ダウンロード集計CGI
-$sum_up_script = './sum_up.cgi';
-
-# 集計ログ
-$sum_up_log = "./moelog/sum_up.log";
-
 # WEB上設定更新モード (0=no 1=yes)
 $web_mode = '1';
 

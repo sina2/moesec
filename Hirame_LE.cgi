@@ -29,10 +29,6 @@ $cgi_lib'maxdata=$maxdata;
 
 if($icon_dir2){$icon_dir = $icon_dir2;}
 
-if ($UP_Pl == 1) {
-require './Teikyo.pl';
-}
-
 @string_table = split( //, $string_table );
 
 # フォームのデコード
@@ -331,7 +327,6 @@ if($flash_mode){
 $flash_ex="[<a href=\"$script?new_topic=flash&bg_img=$bg_img$ds_on\"><B>Flash貼\り付け</B></a>]";
 }
 if($icon_mode){$imd="[<a href=\"$iconCGI?bg_img=$bg_img\">アイコンこ〜な〜</a>][<a href=\"$iconCGI?bg_img=$bg_img&rank=on\">アイコンらんきんぐ</a>]";}
-if ($UP_Pl) {$up_mode="[<a href='$sum_up_script?bg_img=$bg_img'>DL集計</a>]"; }
 if($bgm_up){$bgm_tk="・BGM貼\り付け";}
 if($web_mode){$web="[<a href=\"$webedit?bg_img=$bg_img\">設定変更</a>]";}
 if($mode eq "all_log"){$all_log = "&mode=all_log";}
@@ -441,15 +436,7 @@ sub kiji_edit {
 		    $text1 = $text2;
 		    $sub_color1 = $sub_color2;
         }
-		if  ($up_on eq 'up_exist'){
-        
-$up_html= <<EOM;
-<td><form action=\"$sum_up_script\" method=\"$method\">
-<input type=hidden name=sumu_up value=\"$date\">
-<input type=submit value=\"いただく♪\"></td><td>&nbsp;&nbsp;&nbsp;</td></form>
-EOM
-		}
-        else{$up_html="";}
+		$up_html="";
 
 		if ($icon ne "") {$icon_html="<td><img src=\"$icon_dir$icon\"></td>\n"; }
 		else{$icon_html="<td width=37>　</td>\n"; }
@@ -777,9 +764,6 @@ sub regist {
 	# 削除キーを暗号化
 	if ($in{'pwd'} ne "") { &passwd_encode($in{'pwd'}); }
 
-	if ($up_on eq "up_exist") { 
-	    &Teikyo'regist($sum_up_log,$date,$up_title,$up_comment,0,$name,$up_limit,$ango);
-	}
     if ($in{'resno'} && $in{'upfile'}) { $in{'hari'} = "on"; }
 
 	## ランキング+認証
@@ -3173,39 +3157,6 @@ EOM
 	if($tg_mc){print "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";}
 
 
-if ($UP_Pl == 1) {
-if (!$k) {
-&Teikyo'get_num($sum_up_log,$dt);
-$Teikyo'SUM_coment =~ s/<br>/\r/g;
-if ($UP eq 'up_exist') {$UP_ck = ' checked';}
-print <<"EOM";
-<BR><BR>
-<tr>
-  <td colspan=2>
-  <input type=checkbox name=up_check$UP_ck>
-  <b>提供品がある場合はここにチェックを</b>(チェックを外せば削除できます)</td><br>
-</tr>
-<tr>
-  <td nowrap><b>提供品名</b></td>
-  <td><input type=text size="$subj_wid" name=up_title value="$Teikyo'SUM_title">：空欄の場合は題名が提供品名になります</td>
-</tr>
-<tr>
-  <td nowrap><b>提供数</b></td>
-  <td><input type=text size="5" name=up_limit maxlength=3 value="$Teikyo'SUM_limit">：0〜999の間で入力してね。それ以外は無制限になります</td>
-</tr>
-<tr>
-  <td colspan=2>
-    <b>提供品ＵＲＬ・コメント等</b><br>
-    <textarea cols="$com_wid" rows=2 name=up_comment wrap="$wrap">$Teikyo'SUM_coment</textarea>
-  </td>
-</tr>
-<tr>
-  <td nowrap><b>DL数</b></td>
-  <td><input type=text size="4" name=DL_num value="$Teikyo'SUM_num"></td>
-</tr>
-EOM
-}
-}
 if($img =~ /bgm$/){$img =~ s/bgm$//;$bgm=$img;$bgme="　<a href=$bgm target=_blank><b>貼\りBGM</b></a>";$imps=1;}
 elsif($img =~ /swf$/){ $bgmz="　<b>貼\りFlash</b></a>";$impz=1;}
 elsif($img =~ /cgm$/){
@@ -3453,17 +3404,6 @@ sub usr_rest2{
 	}
 	# ログをフォーマット
 	$line = "$num<>$k<>$date(編集)<>$name<>$email<>$sub<>$comment<>$url<>$host<>$ango<>$color<>$icon_reg<>$in{'Tbl_B'}<>$up_on<>$dimg<>$pixel";
-
-	if (($UP eq 'up_exist') && ($up_check eq 'on')) {
-	# 提供品ログの修正
-	&Teikyo'rest($sum_up_log,$dt,$up_title,$up_comment,$DL_num,"$date(編集)",$name,$up_limit,$ango);
-	} elsif ($up_check eq 'on') {
-	# 提供品ログに書き込み
-	&Teikyo'regist($sum_up_log,"$date(編集)",$up_title,$up_comment,0,$name,$up_limit,$ango);
-	} elsif (($UP eq 'up_exist') && ($up_check ne 'on')) {
-	# 提供品ログより削除
-	&Teikyo'del($sum_up_log,$dt);
-	}
 
 	last;	}
 
@@ -3818,31 +3758,6 @@ EOM
 
 &d_mode;
 
-if ($UP_Pl == 1) {
-## ↓提供品名・提供品ＵＲＬ・コメント等を追加##
-print <<"EOM";
-<BR><BR>
-<tr>
-  <td colspan=2>
-  <input type=checkbox name=up_check>
-  <b>提供品がある場合はここにチェックを</b></td><br>
-</tr>
-<tr>
-  <td nowrap><b>提供品名</b></td>
-  <td><input type=text size="$subj_wid" name=up_title>：空欄の場合は題名が提供品名になります</td>
-</tr>
-<tr>
-  <td nowrap><b>提供数</b></td>
-  <td><input type=text size="5" name=up_limit maxlength=3>：0〜999の間で入力してね。それ以外は無制限になります</td>
-</tr>
-<tr>
-  <td colspan=2>
-    <b>提供品ＵＲＬ・コメント等</b><br>
-    <textarea cols="$com_wid" rows=2 name=up_comment wrap="$wrap"></textarea>
-  </td>
-</tr>
-EOM
-}
 print "</td></tr></table></form></blockquote><hr>\n";
 &footer;
 exit;}
@@ -3938,31 +3853,6 @@ EOM
 	if($tg_mc){print "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";}
 &d_mode;
 
-if ($UP_Pl == 1) {
-## ↓提供品名・提供品ＵＲＬ・コメント等を追加##
-print <<"EOM";
-<BR><BR>
-<tr>
-  <td colspan=2>
-  <input type=checkbox name=up_check>
-  <b>提供品がある場合はここにチェックを</b></td><br>
-</tr>
-<tr>
-  <td nowrap><b>提供品名</b></td>
-  <td><input type=text size="$subj_wid" name=up_title>：空欄の場合は題名が提供品名になります</td>
-</tr>
-<tr>
-  <td nowrap><b>提供数</b></td>
-  <td><input type=text size="5" name=up_limit maxlength=3>：0〜999の間で入力してね。それ以外は無制限になります</td>
-</tr>
-<tr>
-  <td colspan=2>
-    <b>提供品ＵＲＬ・コメント等</b><br>
-    <textarea cols="$com_wid" rows=2 name=up_comment wrap="$wrap"></textarea>
-  </td>
-</tr>
-EOM
-}
 print "</td></tr></table></form></blockquote><hr>\n";
 &footer;
 exit;}
@@ -4048,31 +3938,6 @@ EOM
 
 &d_mode;
 
-if ($UP_Pl == 1) {
-## ↓提供品名・提供品ＵＲＬ・コメント等を追加##
-print <<"EOM";
-<BR><BR>
-<tr>
-  <td colspan=2>
-  <input type=checkbox name=up_check>
-  <b>提供品がある場合はここにチェックを</b></td><br>
-</tr>
-<tr>
-  <td nowrap><b>提供品名</b></td>
-  <td><input type=text size="$subj_wid" name=up_title>：空欄の場合は題名が提供品名になります</td>
-</tr>
-<tr>
-  <td nowrap><b>提供数</b></td>
-  <td><input type=text size="5" name=up_limit maxlength=3>：0〜999の間で入力してね。それ以外は無制限になります</td>
-</tr>
-<tr>
-  <td colspan=2>
-    <b>提供品ＵＲＬ・コメント等</b><br>
-    <textarea cols="$com_wid" rows=2 name=up_comment wrap="$wrap"></textarea>
-  </td>
-</tr>
-EOM
-}
 print "</td></tr></table></form></blockquote><hr>\n";
 &footer;
 exit;}
