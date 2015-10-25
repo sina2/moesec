@@ -2120,8 +2120,8 @@ sub usr_del {
 			    #ログ互換
 			    if($bgm =~ /\.$/){$bgm="$img.bgm";}
 
-			    if(-e "$pic"){ unlink("$pic"); }
-			    if(-e "$bgm"){ unlink("$bgm"); }
+#			    if(-e "$pic"){ unlink("$pic"); }
+#			    if(-e "$bgm"){ unlink("$bgm"); }
 			}
 
 			elsif(($img) && (-e "$img")){ unlink("$img"); }

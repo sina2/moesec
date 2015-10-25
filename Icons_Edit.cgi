@@ -254,7 +254,7 @@ if($fll){
 if($in{'del_submit'}){
 	foreach(@del_img){
 	$del_img = "$icon_dir$_";
-	if( -e "$del_img"){unlink("$del_img");}
+#	if( -e "$del_img"){unlink("$del_img");}
 	}
 
 #open (LEN,">rw_ck.chk");
