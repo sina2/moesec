@@ -96,9 +96,6 @@ $lockfile = './moelog/yybbs.lock';
 # カウンタのロックファイル
 $cntlock = './moelog/yycnt.lock';
 
-# 投票ロックファイル
-$vtlock = './vt.lock';
-
 # ランキングロックファイル
 $rklock = './moelog/rank.lock';
 
@@ -156,12 +153,6 @@ $tg_mc = '1';
 @itgs1 = ('DS','SD','GR','GG','GB','BL','XR','GY','IN','FH','FV');
 # 上記対応実体
 @itgs2 = ('style="filter:dropshadow()"','style="filter:shadow()"','style="filter:glow(color=red)"','style="filter:glow(color=green)"','style="filter:glow(color=blue)"','style="filter:blur()"','style="filter:xray()"','style="filter:gray()"','style="filter:invert()"','style="filter:fliph()"','style="filter:flipv()"');
-
-# 投票ボタン（投票システムを使いたくない場合は未記入で $vt_btn = '';）
-$vt_btn = '<input type=submit value="投票・見る">';
-
-# 投票ログディレクトリ
-$vt_dir = './vt_dir/';
 
 #【動作系設定】
 

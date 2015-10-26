@@ -204,7 +204,6 @@ if ($new_topic eq "new") {&new_topic;}
 if ($new_topic eq "gazou") { &gazou_topic; }
 if ($new_topic eq "flash") { &flash_topic; }
 if ($in{'rank'}){ &rank;}
-if ($in{'vt'}){ &vote;}
 
 	# アイコン設定ファイル読み込み
 sub icon_exe{
@@ -281,21 +280,6 @@ sub html_log {
 	# レス記事はレス順につけるため配列を逆順にする
 	if(!$in{'rev_sort'}){@lines = reverse(@lines);}
 
-	if($in{'vt_all'}){
-		opendir (DIR,$vt_dir);
-		@dir_list = readdir DIR;
-		close(DIR);
-		foreach(@dir_list){
-			if($_ =~ /(\d+)\.vt/){push(@vt_list,$1);}
-		}
-		foreach(@vt_list){
-			foreach $ln(@new){
-				local($num) = split(/<>/, $ln);
-				if($_ == $num){push(@vt_lines,$ln);last;}
-			}
-		}
-		@new = reverse(@vt_lines);
-	}
 
 	# ヘッダを出力
 	&header;
@@ -346,10 +330,6 @@ if($hari_mode || $bgm_up){$hn_db = "[<a href=\"$script?bg_img=$bg_img&rank=on\">
 if($mode eq "all_log"){$alg = "[<a href=\"$script?cnt=no$dt_log\">通常表\示</a>]";}else{$alg = "[<a href=\"$script?mode=all_log&bg_img=$bg_img&cnt=no$dt_log\">全記事表\示</a>]";}
 if($pass_mode){$pm_ex = "[<a href=\"$script?mode=pass_rest&bg_img=$bg_img\">認証pass変更</a>]";}
 if($tg_mc){$tg_mc2 = "[<a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank>マクロ説明</a>]";}
-if($tg_mc && $vt_btn){
-	if(!$in{'vt_all'}){$vt_mc = "[<a href=\"$script?vt_all=on\">投票記事一覧</a>]";}
-	else{$vt_mc = "[<a href=\"$script?cnt=no\">通常表\示</a>]";}
-}
 print <<EOM;
 <center>$banner1<P>
 $ti_gif
@@ -374,7 +354,6 @@ $past_mode
 $web
 <br>
 $ml_tmn
-$vt_mc
 $up_mode
 $alg
 $dt_sort
@@ -394,7 +373,7 @@ sub kiji_edit {
 	$end_data = @new - 1;
 	$page_end = $page + ($pagelog - 1);
 	if ($page_end >= $end_data) { $page_end = $end_data; }
-	if ($mode eq "all_log" || $in{'vt_all'}) { $page_end = $end_data; }
+	if ($mode eq "all_log" ) { $page_end = $end_data; }
 	foreach ($page .. $page_end) {
 		($number,$k,$date,$name,$email,$sub,
 			$comment,$url,$host,$pwd,$color,$icon,$tbl,$up_on,$ImgFile,$pixel) = split(/<>/, $new[$_]);
@@ -935,17 +914,6 @@ sub regist {
 		    if ($i > $max-1) {
 			$stop = 1;
 
-			if(!$k){
-				if(-e "$vt_dir$num\.vt"){
-					#open(VT,"$vt_dir$num\.vt");
-					sysopen(VT,"$vt_dir$num\.vt",O_RDONLY);
-					@past_vt = <VT>;
-					close(VT);
-					unshift(@past_vt,$num);
-					push(@past_vt_reg,@past_vt);
-					unlink("$vt_dir$num\.vt"); 
-				}
-			}
 
 			if($ImgDir2){$img =~ s/^$ImgDir2//;$img = "$ImgDir$img";}
 
@@ -1058,12 +1026,6 @@ close(RL);
 
 	}
 
-	if($vote){
-		#open(VT,">$vt_dir$oya\.vt") || &error("Can't open $vt_dir$oya\.vt");
-		sysopen(VT,"$vt_dir$oya\.vt" , O_WRONLY | O_TRUNC | O_CREAT ) || &error("Can't open $vt_dir$oya\.vt");
-		close(VT);
-		chmod(oct($vt_pm),"$vt_dir$oya\.vt");
-	}
 
 	# 親記事NOを付加
 	unshift (@new,"$oya\n");
@@ -2052,9 +2014,6 @@ sub usr_del {
 		($num,$k,$dt,$name,$email,$sub,$com,$url,$host,$pw,$c,$i,$d,$d,$img,$si) = split(/<>/,$_);
 			if($ImgDir2){$img =~ s/^$ImgDir2//;$img = "$ImgDir$img";}
 
-			if(!$k){
-				if(-e "$vt_dir$num\.vt"){ unlink("$vt_dir$num\.vt"); }
-			}
 
 			if($img =~ /bgm$/){
 			    $img =~ s/bgm$//;
@@ -2141,9 +2100,6 @@ sub admin_del {
 		foreach $del (@delete) {
 			if ($del eq "$dt") {
 
-			if(!$k){
-				if(-e "$vt_dir$num\.vt"){ unlink("$vt_dir$num\.vt"); }
-			}
 
 			if($ImgDir2){$img =~ s/^$ImgDir2//;$img = "$ImgDir$img";}
 
@@ -3198,14 +3154,6 @@ sub usr_rest2{
 	if($in{mail_ex}){$email = "$email\>1";}
 
 	if($tg_mc){$comment = &tg_en("$comment");}
-	if($vote){
-		unless(-e "$vt_dir$num\.vt"){
-			#open(VT,">$vt_dir$num\.vt") || &error("Can't open $vt_dir$num\.vt");
-			sysopen(VT,"$vt_dir$num\.vt" , O_WRONLY | O_TRUNC | O_CREAT) || &error("Can't open $vt_dir$num\.vt");
-			close(VT);
-			chmod(oct($vt_pm),"$vt_dir$num\.vt");
-		}
-	}
 	# ログをフォーマット
 	$line = "$num<>$k<>$date(編集)<>$name<>$email<>$sub<>$comment<>$url<>$host<>$ango<>$color<>$icon_reg<>$in{'Tbl_B'}<>$up_on<>$dimg<>$pixel";
 
@@ -4328,10 +4276,6 @@ $itgtb = "$itgtb<tr><td nowrap>$_：<img $itgs2[$tgs] src=$icon_dir\home.gif></t
 ++$tgs;
 }
 
-if($vt_btn){
-$vtex1 = "<tr><td>VT：投票ボタンです。ラジオボタン、チェックボックス等と組み合わせると簡易投票システムとなります</td></tr>";
-$vtex2 = "<br>・<b>VTは親記事でのみ使用可能、書式は[VT]となります</b><br><br>";
-}
 
 $ftad=0;
 foreach(@sfont1){
@@ -4414,34 +4358,6 @@ $itgtb
 
 EOM
 
-if($vt_btn){
-print <<EOM;
-<pre>
-<b>・使用例５(簡易投票システム)</b>
-KANONでのあなたの萌えキャラは？
-[R:あゆあゆ]
-[R,B:名雪]
-[R,I:しおりん]
-[R,U:まこぴー]
-[R:舞]
-[R,B:秋子さん]
-その他[T:]
-[VT]
-
-　↓
-</pre>
-<input type=hidden name=vt value="6213">
-KANONでのあなたの萌えキャラは？<br>
-<com0><input type=radio name=moe_vt value="あゆあゆ">あゆあゆ</input type=radio name=moe_vt value=moe_vt></com0><br>
-<com1><b><input type=radio name=moe_vt value="名雪">名雪</input type=radio name=moe_vt value=moe_vt></b></com1><br>
-<com2><i><input type=radio name=moe_vt value="しおりん">しおりん</input type=radio name=moe_vt value=moe_vt></i></com2><br>
-<com3><u><input type=radio name=moe_vt value="まこぴー">まこぴー</input type=radio name=moe_vt value=moe_vt></u></com3><br>
-<com4><input type=radio name=moe_vt value="舞">舞</input type=radio name=moe_vt value=moe_vt></com4><br>
-<com5><b><input type=radio name=moe_vt value="秋子さん">秋子さん</input type=radio name=moe_vt value=moe_vt></b></com5><br>
-その他<com6><textarea rows=1 cols=25 name=moe_vt></textarea rows=1 cols=25 name=moe_vt></com6><br>
-<input type=submit value="投票・見る">（サンプルなので押せません）
-EOM
-}
 
 print "</td></tr></table></center>";
 
@@ -4521,14 +4437,6 @@ sub tg_en{
 
 	}
 
-	if($vt_btn){
-		if($_[0] =~ s/\[VT]/$vt_btn<\/form>/){
-			if($mode eq "msg" && !$in{'resno'}){$vt_num = $oya+1;}
-			elsif($mode eq "Reg_usr_rest" && !$k) {$vt_num = $num;}
-			else{&error("投票システムを使えるのは親記事のみです",'NOLOCK');}
-			$vote = 1;
-		}
-	}
 	
 	push(@tgs1,"RB");
 	push(@tgs2,"ruby");
@@ -4601,7 +4509,6 @@ sub tg_en{
 		++$tgrp;
 	}
 
-	if($vote){$_[0] = "<form action=\"$script\" method=\"POST\" target=_blank><input type=hidden name=vt value=\"$vt_num\">$_[0]";}
 	return($_[0]);
 
 }
@@ -4707,83 +4614,6 @@ sub tg_de{
 	return($_[0]);
 }
 
-sub vote{
-
-if($fll){
-	foreach (1 .. 10) {
-		unless (-e $vtlock) {last;}
-		sleep(1);
-	}
-}
-#open(VT,"$vt_dir$in{vt}\.vt");
-sysopen(VT,"$vt_dir$in{vt}\.vt",O_RDONLY);
-if($lockkey == 3){flock(VT,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-@vt = <VT>;
-close(VT);
-
-if(@moe_vt){
-$addr = $ENV{'REMOTE_ADDR'};
-	foreach(@moe_vt){
-		$_ =~ s/\n//g;
-		$vtc = 0;
-		foreach $vt(@vt){
-			($vt1,$vt2,$vt3) = split(/\t/,$vt);
-			if($vt1 eq "$_"){
-				$vtc = 1;
-				if($vt3 ne "$addr"){
-					++$vt2;
-					$vt = "$vt1\t$vt2\t$addr\t\n";
-				}
-				last;
-			}
-		}
-		if(!$vtc){push(@vt,"$_\t1\t$addr\t\n");}
-	}
-
-	if($fll){
-		&fll("$vtlock","$vt_dir$in{vt}\.vt",@vt);
-	}else{
-		#open(VT, "+< $vt_dir$in{vt}\.vt") || &error("Can't open $vt_dir$in{vt}\.vt");
-		sysopen(VT, "$vt_dir$in{vt}\.vt" , O_RDWR ) || &error("Can't open $vt_dir$in{vt}\.vt");
-		if($lockkey == 3){flock(VT,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-		truncate(VT, 0);
-		seek(VT, 0, 0);
-		print VT @vt;
-		close(VT);
-	}
-}
-
-&header;
-
-print "<center><font color=\"$t_color\" size=6 face=\"$t_face\"><b><SPAN>記事No$in{vt}の投票結果</SPAN></b></font></center><br>";
-print "<center><table border=1 cellspacing=0 bordercolor=black>\n";
-print "<tr><th>順位</th><th>項目</th><th>人数</th></tr>\n";
-foreach(@vt){
-	($vt1,$vt2) = split(/\t/,$_);
-	$sort_vt{$vt1} = $vt2;
-}
-	
-@sort_vt = sort {$sort_vt{$b} <=> $sort_vt{$a}} keys(%sort_vt);
-
-foreach(@sort_vt){
-	++$rk;
-	if($nex_jg == $sort_vt{$_}){
-		if($next_num){
-			$ex_num = $next_num;
-		}else{
-			$next_num = $rk; $ex_num = --$next_num;
-		}
-	}else{
-		$next_num=0;$ex_num = $rk;
-	}
-
-	$nex_jg = $sort_vt{$_};
-print "<tr><td>$ex_num</td><td>$_</td><td>$sort_vt{$_}人</td></tr>\n";
-}
-print "</table></center>";
-&footer;
-exit;
-}
 
 sub fll{
 	$tmpfile = shift(@_);
