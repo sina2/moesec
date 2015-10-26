@@ -199,7 +199,6 @@ if ($mode eq "pass_rest") { &pass_rest; }
 if ($mode eq "bkup") { &bk_up; }
 if ($mode eq "mc_ex"){ &mc_ex;}
 if ($mode eq "swf"){ &swf;}
-if ($mode eq "convert"){ &convert;}
 if ($in{'papost'} eq 'pcode') { &password; }
 if ($new_topic eq "new") {&new_topic;}
 if ($new_topic eq "gazou") { &gazou_topic; }
@@ -2216,9 +2215,6 @@ sub admin {
 	if($pass_mode){$pmex = "pass認証";}else{$pmex = "だ〜び〜";}
 	print "$pmex:<input type=radio name=mode value=\"rank_rest\">\n";
 	print "ログ:<input type=radio name=mode value=\"bkup\">\n";
-    print "ランクログ変換:<input type=radio name=mode value=\"convert\"><br><br>\n";
-    print "ランクログ変換は従来の萌え板からこの萌え板を初めて使うときに１回だけやってください<br>\n";
-    print "それ以外の時は絶対に使用しないでください<br>\n";
 
 	if ($in{'ds'}) {
 	print "<input type=hidden name=ds value='on'>\n";
@@ -4836,29 +4832,6 @@ print "<img src=$fwall></body></html><noembed>";
 exit;
 }
 
-sub convert {
-
-if (crypt($in{'pass'}, substr($password, $salt, 2) ) ne $password) {
-	&error("パスワードが違います",'NOLOCK');
-}
-
-#if (!open(DATA,"$rank_log")) {	return ;	}
-if (!sysopen(DATA,"$rank_log",O_RDONLY)) {	return ;	}
-@LOG = <DATA>;	close(DATA);
-foreach ( @LOG )	{
-	chop $_ ;
-	($name,$all,$cg,$bgm,$res,$pass,$la,$rest,$mcr) = split(/<>/,$_);
-	push(@new,"$name<>$all<>$cg<>$bgm<>0<>$res<>$pass<>$la<>$rest<>$mcr<>\n");
-}
-#if ( !(open(OUT,">$rank_log")))	{	return;	}
-if ( !(sysopen(OUT,"$rank_log",O_WRONLY | O_TRUNC | O_CREAT )))	{	return;	}
-print OUT @new;	close(OUT);
-
-&header;
-print "<div align=center>変換終了〜</div><P><hr><P>\n";
-&footer;
-exit;
-}
 
 sub GetGifSize {
 	local($buf) = $_[0];
