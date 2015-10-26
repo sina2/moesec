@@ -164,14 +164,6 @@ $vt_btn = '<input type=submit value="投票・見る">';
 $vt_dir = './vt_dir/';
 
 #【動作系設定】
-# HTML出力をする (0=no 1=yes)
-$html_on = '0';
-
-# HTML出力時の外部カウンタソース指定（SSIやレンタルカウンタなどで別途用意）<br> &lt;!--#exec cmd="./aaa.pl"&gt; などと指定。詳しくは使用するカウンタの説明参照。
-$count_src = '';
-
-# HTML出力時のページ作成ディレクトリ
-$html_dir = '';
 
 # スクリプトのファイル名
 $script = 'Hirame_LE.cgi';
@@ -179,7 +171,7 @@ $script = 'Hirame_LE.cgi';
 # 「ホームへ戻る」のURL (相対パスやフルパスで)
 $homepage_back = '';
 
-# 掲示板のTOPのURL (通常は $script か ./page1.html で)
+# 掲示板のTOPのURL (通常は $script で)
 $homepage = "$script";
 
 # フレーム定義HTML 新規投稿時の飛び先にも使用<br> フレームもCGIにしたければmoemoe.cgiを使用する

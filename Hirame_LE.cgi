@@ -1083,15 +1083,6 @@ close(RL);
 	}
 
 
-## HTML作成
-if($html_on){
-	require './html.pl';
-	&html_ex;
-	$html_write = 0;
-	if($in{'resno'}){
-		$top_page = "./page1.html";
-	}
-}
 
 if($in{'resno'}){
 	$top_page = "$script";
@@ -2122,12 +2113,6 @@ sub usr_del {
 	# ロック解除
 	if (-e $lockfile) { unlink($lockfile); }
 
-	## HTML作成
-	if($html_on){
-		require './html.pl';
-		&html_ex;
-		$html_write = 0;
-	}
 
 	# 削除画面にもどる
 	&msg_del;
@@ -2227,12 +2212,6 @@ sub admin_del {
 		close(LOG);
 	}
 
-	## HTML作成
-	if($html_on){
-		require './html.pl';
-		&html_ex;
-		$html_write = 0;
-	}
 
 	# ロック解除
 	if (-e $lockfile) { unlink($lockfile); }
@@ -2480,13 +2459,9 @@ EOM
 	else { $bgkey = "bgcolor=$bgcolor"; }
 	$header  .= "<body $bgkey text=$text link=$link vlink=$vlink alink=$alink>\n";
 
-	if(!$html_write){
 
 	print "Content-type: text/html\n\n";
 		print "$header";
-	}elsif(!$page_cnt){
-		$header .= "$count_src";
-	}
 }
 
 ## --- HTMLのフッター
@@ -2514,7 +2489,7 @@ $footer .= "<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 
 $footer .= "</body></html>";
 if($nobanner){$footer .= "<noembed>";}
-if(!$html_write){print "$footer";}
+print "$footer";
 }
 
 ## --- 自動リンク
@@ -3292,12 +3267,6 @@ sub usr_rest2{
 		close(LOG);
 	}
 
-	## HTML作成
-	if($html_on){
-		require './html.pl';
-		&html_ex;
-		$html_write = 0;
-	}
 
 $in{'ds'} = $in{'Tbl_B'};
 
