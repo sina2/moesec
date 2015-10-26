@@ -2,7 +2,7 @@
 
 # jcode.plが同一ディレクトリにある場合
 #require './jcode.pl';
-use Encode;
+#use Encode;
 
 # For sysopen()
 use Fcntl;
@@ -1350,20 +1350,6 @@ sub form_decode {
 	$new_topic = $in{'new_topic'};
 	$bg_img=$in{'bg_img'};
 
-	if($mode eq "mail"){
-		while (($key,$value) = each %in) {
-			if(($key eq "name") || ($key eq "title")){
-			#&jcode'convert(*value,'jis');
-			#Jcode::convert(*value,'jis');
-			$value_a = Encode::encode('iso-2022-jp-1',$value);
-			$in{$key} = $value_a;
-			#&jcode'convert(*value,'euc');
-			#Jcode::convert(*value,'euc');
-			$value = Encode::encode('euc-jp',$value);
-			$s_in{$key} = $value;
-			}
-		}
-	}
 
 }
 ## --- 掲示板の使い方メッセージ
