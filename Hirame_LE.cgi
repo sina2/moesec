@@ -196,7 +196,6 @@ if ($mode eq "rank_rest") { &rank_rest; }
 if ($mode eq "usr_rest") {&usr_rest; }
 if ($mode eq "Reg_usr_rest") { &usr_rest2; }
 if ($mode eq "pass_rest") { &pass_rest; }
-if ($mode eq "bkup") { &bk_up; }
 if ($mode eq "mc_ex"){ &mc_ex;}
 if ($mode eq "swf"){ &swf;}
 if ($in{'papost'} eq 'pcode') { &password; }
@@ -2170,7 +2169,6 @@ sub admin {
 	print "記事編集:<input type=radio name=mode value=\"rest\">\n";
 	if($pass_mode){$pmex = "pass認証";}else{$pmex = "だ〜び〜";}
 	print "$pmex:<input type=radio name=mode value=\"rank_rest\">\n";
-	print "ログ:<input type=radio name=mode value=\"bkup\">\n";
 
 	if ($in{'ds'}) {
 	print "<input type=hidden name=ds value='on'>\n";
@@ -3769,134 +3767,9 @@ sub UpFile {
 	$upb_f="";$macbin="";$msc="";
 }
 
-# バックアップ
-sub bk_up{
 
-	if  (crypt($in{'pass'}, substr($password, $salt, 2)) ne $password) {
-	&error("パスワードが違います",'NOLOCK');
-	}
 
-if($in{'bk_load'}){&recv;}
-if($in{'bk_lock'}){chmod(oct($bk_pm),$bk_dat);}
 
-elsif($in{'bk_save'}){
-&get_time;
-@bk_up_lines=("$date\n<date>\n");
-
-foreach(@bk_up){
-	#open(BKUP,$_);
-	sysopen(BKUP,$_,O_RDONLY);
-	@bk_lines=<BKUP>;
-	close(BKUP);
-	push(@bk_lines,"<$_>\n");
-	push(@bk_up_lines,@bk_lines);
-}
-
-#open(BKUP,">$bk_dat");
-sysopen(BKUP,"$bk_dat",O_WRONLY | O_TRUNC | O_CREAT);
-print BKUP @bk_up_lines;
-close(BKUP);
-
-chmod (0666,$bk_dat);
-
-	#if ($ENV{PERLXS} eq "PerlIS") {
-	#print "HTTP/1.0 302 Temporary Redirection\r\n";
-	#print "Content-type: text/html\n";
-	#}
-if(!$redi){
-	print "Location: $bk_dat\n\n";
-}else{
-	&header;
-	print "<META HTTP-EQUIV=\"Refresh\" Content=0\;url=$bk_dat>";
-	&footer;
-}
-exit;
-}
-
-#open(BKUP,"$bk_dat");
-sysopen(BKUP,"$bk_dat",O_RDONLY);
-$bk_date=<BKUP>;
-close(BKUP);
-
-	if($bk_date){
-	chop($bk_date);
-
-$bkex= <<"EOM";
-ログ修復：$bk_dateの状態に戻します$a<br>
-<form action=$script target=_parent>
-<input type=hidden name=mode value=bkup>
-<input type=hidden name=bk_load value=on>
-<input type=hidden name=pass value=$in{'pass'}>
-<input type=hidden name=bg_img value=$in{'bg_img'}>
-<input type=submit value=修復する>
-</form>
-EOM
-
-	}
-
-	else{
-	$bk_date="不明";
-	}
-&header;
-print <<EOM;
-[<a href=\"$homepage\">トップにもどる</a>]<br><br>
-<center>
-最後にバックアップをとったのは$bk_dateです。<br><br>
-<table>
-<tr><td>
-<a href=$script?mode=bkup&bk_save=on&pass=$in{'pass'}&bg_img=$in{'bg_img'}>ログバックアップ</a>
-</td></tr>
-<tr><td><br></td></tr>
-<tr><td>
-<a href=$script?mode=bkup&bk_lock=on&pass=$in{'pass'}&bg_img=$in{'bg_img'}>ログ鍵かけ</a>
-(バックアップをとった後に実行して下さい)
-</td></tr>
-<tr><td><br></td></tr>
-<tr><td><br></td></tr>
-<tr><td>
-$bkex
-</td></tr>
-</table>
-EOM
-&footer;
-exit;
-
-}
-# ログ修復
-sub recv{
-	#open(BKUP,"$bk_dat");
-	sysopen(BKUP,"$bk_dat",O_RDONLY);
-	@bkup=<BKUP>;
-
-	splice(@bkup,0,2);
-	$num=0;
-
-	foreach $bkp(@bkup){
-		if($bkp eq "<$bk_up[$num]>\n"){
-		#open(BKUP,">$bk_up[$num]");
-		sysopen(BKUP,"$bk_up[$num]",O_WRONLY | O_TRUNC | O_CREAT );
-		print BKUP @b_lines;
-		close(BKUP);
-		@b_lines=();
-		$num=$num+1;
-		}
-
-		else{push(@b_lines,$bkp);}
-	}
-
-#if ($ENV{PERLXS} eq "PerlIS") {
-#print "HTTP/1.0 302 Temporary Redirection\r\n";
-#print "Content-type: text/html\n\n";}
-if(!$redi){
-	print "Location: $top_page\n\n";
-}else{
-	&header;
-	print "<META HTTP-EQUIV=\"Refresh\" Content=0\;url=$top_page>";
-	&footer;
-}
-exit;
-
-}
 
 # 最終レス日順並び替え
 sub dt_sort{

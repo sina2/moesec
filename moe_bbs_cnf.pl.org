@@ -222,16 +222,6 @@ $banner2 = '<!--下部-->';
 # ランダム文字列精製用ストリングテーブル
 $st_table = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIGKLMNOPQRSTUVWXYZ1234567890';
 
-#【バックアップ関連】
-# バックアップファイル名
-$bk_dat = './moelog/moe_bk_up.zip';
-
-# バックアップログパーミッション(鍵かけ時に使用)<br>(調子が悪かったら 0606 or 0666 で)
-$bk_pm = '0606';
-
-# バックアップしたいログ
-@bk_up = ('./moelog/count.dat','./moelog/icon.lst','./moelog/rank.log','./moelog/icon_rank.log','./moelog/moemoe.log','./moelog/sum_up.log');
-
 #【おぷしょんこ〜な〜】
 
 # レス時にも画像を貼りつけをする
