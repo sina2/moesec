@@ -5,8 +5,9 @@ use Fcntl;
 
 require './moe_bbs_cnf.pl';
 
-$cgi_lib'maxdata = $ico_max * $ico_rv_num;
 require './cgi-lib.pl';
+$cgi_lib'maxdata = $ico_max * $ico_rv_num;
+#'
 
 $max_sz = $ico_max/1024;
 
@@ -781,6 +782,7 @@ sub up_icon{
 	if ($f_type =~ /gif/i) { $tail=".gif"; }
 	if ($f_type =~ /jpeg/i) { $tail=".jpg"; }
 	if ($f_type =~ /x-png/i) { $tail=".png"; }
+	if ($f_type =~ /png/i) { $tail=".png"; }
 
 	if (!$tail && $macbin) {
 		if ($f_name =~ /.gif/i) { $tail=".gif"; }
@@ -788,7 +790,7 @@ sub up_icon{
 		if ($f_name =~ /.png/i) { $tail=".png"; }
 	}
 	
-	if (!$tail) { &error("$in{$upf_name}のアイコンはアップロードできないファイル形式です"); }
+	if (!$tail) { &error("$in{$upf_name}のアイコンはアップロードできないファイル形式です $f_type"); }
 
 	$tmp_reg = "$ic_nm<>$tail<>$macbin<>";
 	push(@reg_num,$tmp_reg);
