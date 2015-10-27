@@ -22,7 +22,7 @@ $ver = '萌々ぼ〜ど2001 Ver0.54';
 
 #$cgi_lib'maxdata bug
 $cgi_lib'maxdata=$maxdata;
-
+#'
 
 # bgm_mime-type
 %ok_ad=("wav","wav","mid","mid","mpeg","mp3","x-ms-asf","asf","x-ms-wma","wma");
@@ -922,7 +922,7 @@ sub regist {
 			#ログ互換
 			if($img =~ /\.$/){$img="$img"."bgm";}		
 			
-			if(-e "$img"){ unlink("$img"); }
+#			if(-e "$img"){ unlink("$img"); }
 			}
 
 			if($img =~ /cgm$/){
@@ -932,11 +932,11 @@ sub regist {
 			#ログ互換
 			if($bgm =~ /\.$/){$bgm="$img.bgm";}
 
-			if(-e "$pic"){ unlink("$pic"); }
-			if(-e "$bgm"){ unlink("$bgm"); }
+#			if(-e "$pic"){ unlink("$pic"); }
+#			if(-e "$bgm"){ unlink("$bgm"); }
 			}
 
-			elsif(($img) && (-e "$img")){ unlink("$img"); }
+#			elsif(($img) && (-e "$img")){ unlink("$img"); }
 
 		    }
 		    if ($stop == 0) { push(@new,$line); }
@@ -2020,7 +2020,7 @@ sub usr_del {
 			    #ログ互換
 			    if($img =~ /\.$/){$img="$img"."bgm";}		
 
-			    if(-e "$img"){ unlink("$img"); }
+#			    if(-e "$img"){ unlink("$img"); }
 			}
 
 			if($img =~ /cgm$/){
@@ -2034,7 +2034,7 @@ sub usr_del {
 #			    if(-e "$bgm"){ unlink("$bgm"); }
 			}
 
-			elsif(($img) && (-e "$img")){ unlink("$img"); }
+#			elsif(($img) && (-e "$img")){ unlink("$img"); }
 		}
 
 	# 親記事NOを付加
@@ -2108,7 +2108,7 @@ sub admin_del {
 			#ログ互換
 			if($img =~ /\.$/){$img="$img"."bgm";}		
 
-			if(-e "$img"){ unlink("$img"); }
+#			if(-e "$img"){ unlink("$img"); }
 			}
 
 			if($img =~ /cgm$/){
@@ -2118,11 +2118,11 @@ sub admin_del {
 			#ログ互換
 			if($bgm =~ /\.$/){$bgm="$img.bgm";}
 
-			if(-e "$pic"){ unlink("$pic"); }
-			if(-e "$bgm"){ unlink("$bgm"); }
+#			if(-e "$pic"){ unlink("$pic"); }
+#			if(-e "$bgm"){ unlink("$bgm"); }
 			}
 
-			elsif(($img) && (-e "$img")){ unlink("$img"); }
+#			elsif(($img) && (-e "$img")){ unlink("$img"); }
 
 				$dflag = 1;
 				$del_num = $num;
@@ -3121,8 +3121,10 @@ sub usr_rest2{
 	#ログ互換
 	if($bgm =~ /\.$/){$bgm="$t_dimg.bgm";}
 
-	if(!$in{'ch_img'} && (-e "$pic")){ unlink("$pic");$img_del=1; }
-	if(!$in{'ch_bgm'} && (-e "$bgm")){ unlink("$bgm");$bgm_del=1; }
+#	if(!$in{'ch_img'} && (-e "$pic")){ unlink("$pic");$img_del=1; }
+	if(!$in{'ch_img'} && (-e "$pic")){ $img_del=1; }
+#	if(!$in{'ch_bgm'} && (-e "$bgm")){ unlink("$bgm");$bgm_del=1; }
+	if(!$in{'ch_img'} && (-e "$pic")){ $img_del=1; }
 	if($img_del && $bgm_del){$dimg="";}
 	elsif($img_del){$dimg="$bgm"."bgm";}
 	elsif($bgm_del){$dimg=$pic;}
@@ -3131,7 +3133,7 @@ sub usr_rest2{
 
 	# 貼り画像削除
 	elsif(($dimg !~ /bgm$/) && !$in{'ch_img'} && ($dimg) && (-e "$dimg")){
-        unlink("$dimg");
+#        unlink("$dimg");
         $dimg="";
         $pixel = "";
     }
@@ -3143,7 +3145,8 @@ sub usr_rest2{
 	$t_dimg =~ s/bgm$//;		
 	#ログ互換
 	if($t_dimg =~ /\.$/){$t_dimg="$t_dimg"."bgm";}		
-	if(-e "$t_dimg"){ unlink("$t_dimg");$dimg="";}
+#	if(-e "$t_dimg"){ unlink("$t_dimg");$dimg="";}
+	if(-e "$t_dimg"){ $dimg="";}
 
 	}
 
@@ -3611,7 +3614,7 @@ sub flash_topic {
 	&get_agent;
 if($c_m_ex){$c_m_ex = " checked";}
 $max_dat=int($cgi_lib'maxdata/1024);
-
+#'
 $bgm_form= <<"EOM";
 <tr><td nowrap><b>貼\りFlash</b></td>
   <td nowrap>
