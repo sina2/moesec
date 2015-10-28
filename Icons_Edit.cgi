@@ -259,7 +259,7 @@ if($in{'del_submit'}){
 	}
 
 #open (LEN,">rw_ck.chk");
-sysopen (LEN,"rw_ck.chk" , O_WRONLY | O_TRUNC | O_CREAT);
+sysopen (LEN,"$rw_ck_chk" , O_WRONLY | O_TRUNC | O_CREAT);
 print LEN ;
 close(LEN);
 
@@ -353,7 +353,7 @@ if($fll){
 }
 
 #open (LEN,">rw_ck.chk");
-sysopen (LEN,"rw_ck.chk",O_WRONLY | O_TRUNC | O_CREAT );
+sysopen (LEN,"$rw_ck_chk",O_WRONLY | O_TRUNC | O_CREAT );
 print LEN $all_len;
 close(LEN);
 
@@ -799,7 +799,7 @@ sub up_icon{
 
 if(!$in{'rst2_submit'}){
 	#open (LEN,"rw_ck.chk");
-	sysopen(LEN,"rw_ck.chk",O_RDONLY);
+	sysopen(LEN,"$rw_ck_chk",O_RDONLY);
 	$len_ck = <LEN>;
 	close(LEN);
 	if ($len_ck == $all_len) { &error("同アイコンの連続追加はできません"); }

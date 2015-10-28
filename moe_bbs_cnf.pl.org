@@ -248,6 +248,9 @@ $icon_dir2 = '';
 # アイコン設定ファイル
 $icofile = './moelog/icon.lst';
 
+# アイコンチェック用ファイル
+$rw_ck_chk = './moelog/rw_ck.chk';
+
 # アイコンひとつあたりの登録受理最大サイズ (bytes)<br> 1KB=1024B
 $ico_max = "204800";
 
