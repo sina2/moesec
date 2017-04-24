@@ -1,0 +1,17 @@
+language: perl
+
+perl:
+ - "5.24"
+ - "5.22"
+ - "5.20"
+ - "5.18"
+ - "5.16"
+
+install: true
+
+script: "./bgsound.cgi && ./Hirame_LE.cgi"
+
+notifications:
+  slack: udonnet:chXGUc6MRNGkm2AgjhV1FvKG
+
+
