@@ -3714,6 +3714,7 @@ sub UpFile {
 	if ($tail =~ /gif/i) { $tail=".gif"; $flag=1; }
 	if ($tail =~ /jpeg/i) { $tail=".jpg"; $flag=1; }
 	if ($tail =~ /x-png/i) { $tail=".png"; $flag=1; }
+	if ($tail =~ /png/i) { $tail=".png"; $flag=1; }
 	if (!$flag) {
 		#if ($fname =~ /.gif/i) { $tail=".gif"; $flag=1; }
 		#if (($fname =~ /.jpg/i) || ($fname =~ /.jpeg/i)){ $tail=".jpg"; $flag=1; }
