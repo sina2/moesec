@@ -2349,6 +2349,7 @@ sub header {
 	}
 
 	$header = <<"EOM";
+<!doctype html>
 <html>
 <head>
 <META HTTP-EQUIV="Content-type" CONTENT="text/html; charset=utf-8">
@@ -2429,7 +2430,7 @@ $footer .= "<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 }
 
 $footer .= "</body></html>";
-if($nobanner){$footer .= "<noembed>";}
+if($nobanner){$footer .= "";}
 print "$footer";
 }
 
@@ -2562,7 +2563,7 @@ $ict_num_ex = "$ict_num_ex <a href=\"$script?i_pg=self&mode=image&bg_img=$in{bg_
 	print "$ict_num_ex<br><br>\n";
 	print "<FORM><INPUT TYPE=\"button\" VALUE=\"  CLOSE  \" onClick=\"top.close();\"></FORM></center>\n";
 	print "</body></html>\n";
-	if($nobanner){print "<noembed>";}
+	if($nobanner){print "";}
 	exit;
 }
 
@@ -3339,6 +3340,7 @@ sub password {
   print <<"_HTML_";
 Content-type: text/html
 
+<!doctype html>
 <HTML>
 <HEAD>
 <META HTTP-EQUIV="Content-type" CONTENT="text/html; charset=utf-8">
@@ -4540,7 +4542,7 @@ BODY{
 
 EOM
 
-print "<img src=$fwall></body></html><noembed>";
+print "<img src=$fwall></body></html>";
 exit;
 }
 
