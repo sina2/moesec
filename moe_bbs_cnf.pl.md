@@ -14,14 +14,14 @@ $t_face = 'HGP創英角ﾎﾟｯﾌﾟ体';
 ## 本文の文字大きさ（ポイント数:スタイルシート）
 $pt = '10';
 
-### 壁紙を指定する場合（http://から指定）<br> 設定しない場合最後に貼られた画像が背景になります(貼りモードONのとき)
+### 壁紙を指定する<br>指定しない場合最後に貼られた画像が背景になります(貼りモードONのとき)
 $backgif = './Icon/none.gif';
 
 ### Flashが貼られたときの待機画面（500×500以内が妥当）
 $fwall = './Icon/loading.gif';
 
 # 背景画像設定(スタイルシート):配置パターン,固定,開始位置
-##スタイルシートを使用しないで背景画像を表示したい場合は0に
+## スタイルシートを使用しないで背景画像を表示したい場合は0に
 $css = '0';
 
 ## repeat,repeat-x,repeat-y,no-repeat で指定
@@ -141,7 +141,7 @@ $tg_mc = '1';
 
 ## マクロの種類（font以外）<br>マクロ名。大文字のほうが無難。
 @tgs1 = ('B','I','U','S','H','Q','T','R','C','CN','RT','M','M2','MR','MR2','MA','MA2','BL');
-##上記マクロに対応するタグ
+## 上記マクロに対応するタグ
 @tgs2 = ('b','i','u','s','span style="cursor:hand"','span style=";cursor:help"','textarea rows=1 cols=25 name=moe_vt','input type=radio name=moe_vt value=moe_vt','input type=checkbox name=moe_vt value=moe_vt','div align=center','div align=right','marquee','marquee scrollamount=12','marquee direction=right','marquee direction=right scrollamount=12','marquee behavior=alternate','marquee behavior=alternate scrollamount=12','blink');
 
 ## 短縮フォント名
@@ -166,7 +166,7 @@ $homepage_back = '';
 ## 掲示板のTOPのURL (通常は $script で)
 $homepage = "$script";
 
-## フレーム定義HTML 新規投稿時の飛び先にも使用<br> フレームもCGIにしたければmoemoe.cgiを使用する
+## フレーム定義HTML 新規投稿時の飛び先にも使用
 $top_page = 'moemoe.html';
 
 ## ログファイルを指定<br> フルパスで指定する場合は / から記述
@@ -186,10 +186,13 @@ $tbl_color2 = '#000000';
 
 ## 家アイコンの使用 (0=no 1=yes)
 $home_icon = '1';
+
 ## ファイル名
 $home_gif = 'home.gif';
+
 ## 画像の横サイズ
 $home_wid = '25';
+
 ##   〃  縦サイズ
 $home_hei = '22';
 
@@ -262,13 +265,13 @@ $ico_rv_num = '50';
 $my_icon = '0';
 
 ## 管理者専用アイコンの「ファイル名」を指定
-$my_gif = 'master_akiko.jpg';
+$my_gif = '';
 
 ## アイコン五十音順並び替え (0=no 1=yes)
 $nm_st = '0';
 
 ## ランダム時の専用アイコン使用許可 (0=no 1=yes)
-$rd_pri = '1';
+$rd_pri = '0';
 
 ## 画像貼りモード (0=no 1=yes)
 $hari_mode = '1';
@@ -276,7 +279,7 @@ $hari_mode = '1';
 ## BGM貼りモード (0=no 1=yes)
 $bgm_up = '1';
 
-## デフォルトでBGM再生する？ (0=no 1=yes)
+## デフォルトでBGM再生する (0=no 1=yes)
 $bgm_play = '0';
 
 ## Flash貼りモード (0=no 1=yes)
