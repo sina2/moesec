@@ -10,7 +10,7 @@ perl:
 
 install: true
 
-script: "./bgsound.cgi && ./Hirame_LE.cgi && ./Icons_Edit.cgi && moe_bbs_adm.cgi" 
+script: "./bgsound.cgi && ./Hirame_LE.cgi && ./Icons_Edit.cgi && ./moe_bbs_adm.cgi" 
 
 
 
