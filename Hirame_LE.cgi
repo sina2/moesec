@@ -3724,27 +3724,25 @@ sub UpFile {
 	}
     
     if($upz_f){
-    if ($tail =~ /shockwave\-flash/i) { $tail=".swf"; $msz=1; }
-	if (!$msz) { &error("アップロードできないファイル形式です","lock"); }
-
+        if ($tail =~ /shockwave\-flash/i) { $tail=".swf"; $msz=1; }
+	if (!$msz) { &error("アップロードできないファイル形式です","lock_1"); }
 	$upfile = $in{'upflash'};
     }
     
-	if($upb_f){
-
+    if($upb_f){
 	@ok_ad= keys(%ok_ad);
 	foreach $ck_ad(@ok_ad){
-	if ($tail =~ /$ck_ad/i) { $tail=".$ok_ad{$ck_ad}";$b_tail=$ok_ad{$ck_ad};$msc=1;last;}
+	    if ($tail =~ /$ck_ad/i) { $tail=".$ok_ad{$ck_ad}";$b_tail=$ok_ad{$ck_ad};$msc=1;last;}
 	}
 
-	if (!$msc) { &error("アップロードできないファイル形式です","lock"); }
+	if (!$msc) { &error("アップロードできないファイル形式です","lock_2"); }
 
 	$upfile = $in{'upbgm'};
-	}elsif(!$msz){
-	if (!$flag) { &error("アップロードできないファイル形式です","lock"); }
+    }elsif(!$msz){
+	if (!$flag) { &error("アップロードできないファイル形式です","lock_3"); }
 	$w_tail=$tail;
 	$upfile = $in{'upfile'};
-	}
+    }
 
 	# マックバイナリ対策
 	if ($macbin) {
