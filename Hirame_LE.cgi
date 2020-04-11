@@ -3725,7 +3725,7 @@ sub UpFile {
     
     if($upz_f){
         if ($tail =~ /shockwave\-flash/i) { $tail=".swf"; $msz=1; }
-	if (!$msz) { &error("アップロードできないファイル形式です","lock_1"); }
+	if (!$msz) { &error("アップロードできないファイル形式です","lock_1 $tail"); }
 	$upfile = $in{'upflash'};
     }
     
@@ -3735,12 +3735,12 @@ sub UpFile {
 	    if ($tail =~ /$ck_ad/i) { $tail=".$ok_ad{$ck_ad}";$b_tail=$ok_ad{$ck_ad};$msc=1;last;}
 	}
 
-	if (!$msc) { &error("アップロードできないファイル形式です","lock_2"); }
+	if (!$msc) { &error("アップロードできないファイル形式です","lock_2 $tail"); }
 
 	$upfile = $in{'upbgm'};
     }elsif(!$msz){
-	if (!$flag) { &error("アップロードできないファイル形式です","lock_3"); }
-	$w_tail=$tail;
+	if (!$flag) { &error("アップロードできないファイル形式です","lock_3 $tail"); }
+	$w_tail=$tail; 
 	$upfile = $in{'upfile'};
     }
 
