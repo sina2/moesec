@@ -2,6 +2,9 @@
 
 $Settingfile = './moe_bbs_cnf.pl';
 
+use utf8;
+binmode(STDOUT,":utf8");
+
 #for sysyopen()
 use Fcntl;
 
@@ -89,6 +92,8 @@ if ( -f "$Settingfile" ){
 
 @lines = <LOG>;
 close(LOG);
+foreach $buf(@lines){ utf8::decode($buf) };
+
 for ($i=0; $i<=$#lines; $i++) {
 	if ($lines[$i] =~ /^\$adminPass.*=/) { last; }
 }
@@ -139,6 +144,8 @@ if ( -f "$Settingfile" ){
 
 @lines = <LOG>;
 close(LOG);
+foreach $buf(@lines){ utf8::decode($buf) };
+
 for ($i=0; $i<=$#lines; $i++) {
 	if ($lines[$i] =~ /^####\sSYSTEM/) { last; }
 
@@ -204,8 +211,11 @@ if ( -f "$Settingfile" ){
 }else{
 	sysopen(LOG,"./moe_bbs_cnf.pl.md",O_RDONLY) || die;
 }
+@lines = <LOG>;
+close(LOG);
+foreach $buf(@lines){ utf8::decode($buf) };
 
-foreach $logline (<LOG>) {
+foreach $logline (@lines) {
 	if ($logline eq "\n") {next;}
 	if ($_DATA_ == 1 && $logline !~ "_DATA_") {next;}
 	$_DATA_ = 0;
@@ -342,6 +352,7 @@ _HTML_
 print "</body></html>";
 if($nobanner){print "";}
 }
+
 sub form_decode {
 
 	&ReadParse;
@@ -351,7 +362,8 @@ sub form_decode {
 
 		# 文字コードをEUC変換
 		#&jcode'convert(*value,'euc');
-                #Jcode::convert(*value,'euc');
+		#Jcode::convert(*value,'euc');
+		utf8::decode($value);
 
 		# 一括削除用
 		if($name eq 'del'){@del=split(/\0/,$value);}

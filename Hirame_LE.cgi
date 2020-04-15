@@ -1,5 +1,8 @@
 #!/usr/bin/perl -T
 
+use utf8;
+binmode(STDOUT,":utf8");
+
 # jcode.plが同一ディレクトリにある場合
 #require './jcode.pl';
 #use Encode;
@@ -15,6 +18,8 @@ if ( -f "./moe_bbs_cnf.pl" ){
 }else{
 	require './moe_bbs_cnf.pl.md';
 }
+utf8::decode($title);
+
 
 # バージョン情報
 $ver = '萌々ぼ〜ど2001 Ver0.54';
@@ -85,6 +90,7 @@ if($err_on){
 			if($flock){flock(ERL,2) or &error("filelock 失敗ヽ(´ー｀)ノ");}
 			@err_log = <ERL>;
 			close(ERL);
+			foreach $buf(@err_log){ utf8::decode($buf) };
 			$erl_ex=1;
 		}
 		push(@err_log,$err_reg);	
@@ -179,6 +185,7 @@ EOM
 sysopen(DB,"$passfile",O_RDONLY | O_CREAT) || &error("$passfileが無いです");
 @lines = <DB>;
 close(DB);
+foreach $buf(@lines){ utf8::decode($buf) };
 $password = shift(@lines);
 chop($password) if ($password =~ /\n$/);
 ($header, $password) = split(/:/, $password);
@@ -214,7 +221,8 @@ sub icon_exe{
 	sysopen(IN,"$icofile",O_RDONLY | O_CREAT ) || &error("Can't open $icofile",'NOLOCK');
 	@icons = <IN>;
 	close(IN);
-$Icon_num = @icons;
+	foreach $buf(@icons){ utf8::decode($buf) };
+	$Icon_num = @icons;
 
 	# アイコン名前順並び替え
 	if ($nm_st && !$in{sort}){
@@ -260,6 +268,8 @@ sub html_log {
 	sysopen(LOG,"$logfile",O_RDONLY | O_CREAT) || &error("Can't open $logfile",'NOLOCK');
 	@lines = <LOG>;
 	close(LOG);
+	foreach $buf(@lines){ utf8::decode($buf) };
+
 
 	# 記事番号をカット
 	shift(@lines);
@@ -291,7 +301,6 @@ sub html_log {
 	if ($counter) { &counter; }
 
 	# タイトル部
-
 	if ($title_gif eq '') {
 		$ti_gif="<font color=\"$t_color\" size=6 face=\"$t_face\"><SPAN>$title</SPAN></font>";
 	}
@@ -390,10 +399,10 @@ sub kiji_edit {
 		($email,$mail_ex) = split(/>/,$email);
 
 		$sname = $name;
-        $sname =~ s/＠.*//;
-        $sname =~ s/☆.*//;
-	    $sname =~ s/@.*//;
-	    $sname =~ s/★.*//;
+		$sname =~ s/＠.*//;
+		$sname =~ s/☆.*//;
+		$sname =~ s/@.*//;
+		$sname =~ s/★.*//;
         
 			if($email){$name="<a href=\"mailto:$email\">$name</a>"}
 
@@ -514,27 +523,24 @@ sub kiji_edit {
             }
         }
 
-$page_html= <<EOM;
-<center><TABLE border=1 width='95%' cellpadding=5 cellspacing=2 bordercolor="#000000" bgcolor=\"$tbl_color1\">
-<TR><TD>
-<table border=0 cellspacing=0 cellpadding=0><tr>
-<td valign=top><font color=$text1>[<b>$number</b>] <font color=$sub_color1><b>$sub</b></font>
-投稿者：<font color=\"$link\"><b>$name</b></font>
-<small>投稿日：$date</small> <small>$inf $bgm</small> <font face=\"Arial,verdana\">&nbsp; $url</font></td>
-$up_html
-<td><form action=\"$script\" method=\"$method\">
-<input type=hidden name=bg_img value=$bg_img>
-<input type=hidden name=mode value=\"res_msg\">
-<input type=hidden name=resno value=\"$number\">
-<input type=submit value=\"返信\"></td></form>
-</tr></table>
-<table border=0 cellspacing=7><tr>
-$icon_html
-<td>$pic_ex<font color=\"$color\">$comment</font></td></tr></table>
-EOM
-        $bgm="";
-        print "$page_html\n";
-
+	print "<center><TABLE border=1 width='95%' cellpadding=5 cellspacing=2 bordercolor=\"#000000\" bgcolor=\"$tbl_color1\">";
+	print "<TR><TD>";
+	print "<table border=0 cellspacing=0 cellpadding=0><tr>";
+	print "<td valign=top><font color=$text1>[<b>$number</b>] <font color=$sub_color1><b>$sub</b></font>";
+	print "投稿者：<font color=\"$link\"><b>$name</b></font>";
+	print "<small>投稿日：$date</small> <small>$inf $bgm</small> <font face=\"Arial,verdana\">&nbsp; $url</font></td>";
+	print "$up_html";
+	print "<td><form action=\"$script\" method=\"$method\">";
+	print "<input type=hidden name=bg_img value=$bg_img>";
+	print "<input type=hidden name=mode value=\"res_msg\">";
+	print "<input type=hidden name=resno value=\"$number\">";
+	print "<input type=submit value=\"返信\"></td></form>";
+	print "</tr></table>";
+	print "<table border=0 cellspacing=7><tr>";
+	print "$icon_html";
+	print "<td>$pic_ex<font color=\"$color\">$comment</font></td></tr></table>\n";
+      $bgm="";
+	
 ## レスメッセージを表示
 		foreach $line (@lines) {
 		    ($rnum,$rk,$rd,$rname,$rem,$rsub,
@@ -714,6 +720,7 @@ sub regist {
 	if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
 	@lines = <LOG>;
 	close(LOG);
+	foreach $buf(@lines){ utf8::decode($buf) };
 
 	# 記事NO処理
 	$oya = $lines[0];
@@ -762,6 +769,7 @@ sub regist {
 	if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
 	@rank = <RL>;
 	close(RL);
+	foreach $buf(@rank){ utf8::decode($buf) };
 
 	foreach(@rank){
 	    $_ =~ s/\n//;
@@ -1010,6 +1018,7 @@ close(RL);
 	sysopen(IN,"$i_rank_log",O_RDONLY) || &error("Can't open $i_rank_log");
 	@i_rank = <IN>;
 	close(IN);
+	foreach $buf(@i_rank){ utf8::decode($buf) };
 
 	foreach(@i_rank){
 	($ico,$ic_num) = split(/<>/,$_);
@@ -1078,6 +1087,7 @@ sub res_msg {
 	sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile",'NOLOCK');
 	@lines = <LOG>;
 	close(LOG);
+	foreach $buf(@lines){ utf8::decode($buf) };
 
 	# 親記事NOをカット
 	@lines = splice(@lines,1);
@@ -1141,6 +1151,7 @@ sub res_msg {
 	if ($resub !=~ /^Re\:/) { $resub = "Re\: $resub"; }
 
     $max_dat=int($cgi_lib'maxdata/1024);
+     #'
     $mx_ex="<span>　</span>jpg,gif,png $max_dat KBまで";
 	print <<"EOM";
 </td></tr></table></center><hr>
@@ -1245,6 +1256,7 @@ sub form_decode {
 		# 文字コードをEUC変換
 		#&jcode'convert(*value,'euc');
 		#Jcode::convert(*value,'euc');
+		utf8::decode($value);
 
 		# 一括削除用
 		if($name eq 'del'){@delete=split(/\0/,$value);}
@@ -1413,6 +1425,7 @@ HTML
 		sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile",'NOLOCK');
 		@lines = <LOG>;
 		close(LOG);
+		foreach $buf(@lines){ utf8::decode($buf) };
 
 		# 検索処理
 		foreach (1 .. $#lines) {
@@ -1525,7 +1538,8 @@ sub get_cookie {
 		# 文字コードをEUC変換 #
 		#&jcode'convert(*value,'euc');
                 #Jcode::convert(*value,'euc');
-
+		utf8::decode($value);
+		
 		$COOKIE{$name} = $value;
 	}
 	$c_name  = $COOKIE{'name'};
@@ -1569,6 +1583,7 @@ sub msg_del {
 	sysopen(LOG,$logfile,O_RDONLY) || &error("Can't open $logfile",'NOLOCK');
 	@lines = <LOG>;
 	close(LOG);
+	foreach $buf(@lines){ utf8::decode($buf) };
 
 	shift(@lines);
 
@@ -1744,6 +1759,7 @@ sysopen(RL,"$rank_log",O_RDONLY) || &error("Can't open $rank_log");
 if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
 @hd_rank = <RL>;
 close(RL);
+foreach $buf(@hd_rank){ utf8::decode($buf) };
 
 if($in{rw}){
 
@@ -1957,12 +1973,13 @@ sub usr_del {
 	if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
 	@lines = <LOG>;
 	close(LOG);
+	foreach $buf(@lines){ utf8::decode($buf) };
 
 	#open(RL,"$rank_log") || &error("Can't open $rank_log");
 	sysopen(RL,"$rank_log",O_RDONLY) || &error("Can't open $rank_log");
-
 	@rank = <RL>;
 	close(RL);
+	foreach $buf(@rank){ utf8::decode($buf) };
 
 	# 親記事NO
 	$oya = $lines[0];
@@ -2085,6 +2102,7 @@ sub admin_del {
 	if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
 	@lines = <LOG>;
 	close(LOG);
+	foreach $buf(@lines){ utf8::decode($buf) };
 
 	# 親記事NO
 	$oya = $lines[0];
@@ -2594,6 +2612,7 @@ sub rest {
 	sysopen(LOG,$logfile,O_RDONLY) || &error("Can't open $logfile");
 	@lines = <LOG>;
 	close(LOG);
+	foreach $buf(@lines){ utf8::decode($buf) };
 
 	shift(@lines);
 
@@ -2766,11 +2785,13 @@ sub usr_rest {
 	sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile");
 	@lines = <LOG>;
 	close(LOG);
+	foreach $buf(@lines){ utf8::decode($buf) };
 
 	#open(RL,"$rank_log") || &error("Can't open $rank_log");
 	sysopen(RL,"$rank_log",O_RDONLY) || &error("Can't open $rank_log");
 	@rank = <RL>;
 	close(RL);
+	foreach $buf(@rank){ utf8::decode($buf) };
 
 	foreach $line (@lines) {
 		($num,$k,$dt,$name,$email,$sub,$com,$url,$host,$encode_pwd,$cor,$icon,$ds,$UP,$img,$pixel) = split(/<>/,$line);
@@ -2974,6 +2995,7 @@ sub usr_rest2{
 	if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
 	@lines = <LOG>;
 	close(LOG);
+	foreach $buf(@lines){ utf8::decode($buf) };
 
 	if($fll){
 		foreach (1 .. 10) {
@@ -2986,6 +3008,7 @@ sub usr_rest2{
 	if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
 	@rank = <RL>;
 	close(RL);
+	foreach $buf(@rank){ utf8::decode($buf) };
 
 	# 親記事NO
 	$oya = $lines[0];
@@ -3228,6 +3251,7 @@ if($in{rest_sel}){
 	if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
 	@rank = <RL>;
 	close(RL);
+	foreach $buf(@rank){ utf8::decode($buf) };
 
 	$cut_name = $name;
 	$cut_name =~ s/＠.*//;
@@ -3818,6 +3842,7 @@ sub rank{
 sysopen (RL,"$rank_log",O_RDONLY | O_CREAT) || &error("Can't open $rank_log");
 @hd_rank = <RL>;
 close(RL);
+foreach $buf(@hd_rank){ utf8::decode($buf) };
 
 foreach $hd_rank(@hd_rank){
 $hd_rank =~ s/\n//;
@@ -4262,6 +4287,7 @@ sub tg_en{
 			sysopen(IN,"$icofile",O_RDONLY) || &error("Can't open $icofile",'NOLOCK');
 			@icons = <IN>;
 			close(IN);
+			foreach $buf(@icons){ utf8::decode($buf) };
 			$op_ico = 1;
 		}
 
@@ -4303,6 +4329,7 @@ sub tg_en{
 			sysopen(IN,"$icofile",O_RDONLY) || &error("Can't open $icofile",'NOLOCK');
 			@icons = <IN>;
 			close(IN);
+			foreach $buf(@icons){ utf8::decode($buf) };
 			$op_ico = 1;
 		}
 

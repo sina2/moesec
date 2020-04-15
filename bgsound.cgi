@@ -1,5 +1,8 @@
 #!/usr/bin/perl -T
 
+use utf8;
+binmode(STDOUT,":utf8");
+
 #for sysopen()
 use Fcntl;
 
@@ -20,6 +23,7 @@ if($bgm_play){
 	sysopen(IN,"$logfile",O_RDONLY);
 	@lines = <IN>;
 	close(IN);
+	foreach $buf(@lines){ utf8::decode($buf) };
 	shift(@lines);
 	
 	foreach $line (@lines) {
