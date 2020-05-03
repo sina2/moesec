@@ -1,5 +1,8 @@
 # moesec
 
+[![Build Status](https://travis-ci.com/sina2/moesec.svg?branch=master)](https://travis-ci.com/sina2/moesec)
+
 https://tech-public.blogspot.jp/2015/10/github_25.html
 
-[![Build Status](https://travis-ci.com/sina2/moesec.svg?branch=master)](https://travis-ci.com/sina2/moesec)
+UTF-8-1ブランチは以下のURLを参考に
+http://mycc.s33.xrea.com/data/pc/perl_use_utf8.html
