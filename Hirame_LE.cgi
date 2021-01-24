@@ -19,6 +19,7 @@ if ( -f "./moe_bbs_cnf.pl" ){
 	require './moe_bbs_cnf.pl.md';
 }
 utf8::decode($title);
+utf8::decode($pagelog);
 
 
 # バージョン情報
@@ -652,7 +653,7 @@ sub kiji_edit {
 		print "<td><form method=\"$method\" action=\"$script\">\n";
 		print "<input type=hidden name=cnt value=no>\n";
 		print "<input type=hidden name=page value=\"$back_line\">\n";
-		print "<input type=submit value=\"前の$pagelog件\">\n";
+		print "<input type=submit value=\"前の $pagelog 件\">\n";
 		print "$hid_dt";
 		print "</form></td>\n";	
 	}
@@ -662,7 +663,7 @@ sub kiji_edit {
 		print "<td><form method=\"$method\" action=\"$script\">\n";
 		print "<input type=hidden name=cnt value=no>\n";
 		print "<input type=hidden name=page value=\"$next_line\">\n";
-		print "<input type=submit value=\"次の$pagelog件\">\n";
+		print "<input type=submit value=\"次の $pagelog 件\">\n";
 		print "$hid_dt";
 		print "</form></td>\n";
 	}
@@ -1710,7 +1711,7 @@ sub msg_del {
 	  print "<input type=hidden name=cnt value=no>\n";
 	  print "<input type=hidden name=page value=\"$back_line\">\n";
 	  print "<input type=hidden name=mode value=msg_del>\n";
-	  print "<input type=submit value=\"前の親記事$pagelog件\">\n";
+	  print "<input type=submit value=\"前の親記事 $pagelog 件\">\n";
 
 	  if ($in{'action'} eq 'admin') {
 		print "<input type=hidden name=action value=\"admin\">\n";
@@ -1727,7 +1728,7 @@ sub msg_del {
 	  print "<input type=hidden name=cnt value=no>\n";
 	  print "<input type=hidden name=page value=\"$next_line\">\n";
 	  print "<input type=hidden name=mode value=msg_del>\n";
-	  print "<input type=submit value=\"次の親記事$pagelog件\">\n";
+	  print "<input type=submit value=\"次の親記事 $pagelog 件\">\n";
 
 	  if ($in{'action'} eq 'admin') {
 		print "<input type=hidden name=action value=\"admin\">\n";
@@ -2739,7 +2740,7 @@ if ($in{'action'} ne 'admin') {
 		print "<input type=hidden name=page value=\"$back_line\">\n";
 		print "<input type=hidden name=mode value=rest>\n";
 		print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
-		print "<input type=submit value=\"前の親記事$pagelog件\">\n";
+		print "<input type=submit value=\"前の親記事 $pagelog 件\">\n";
 
 		if ($in{'action'} eq 'admin') {
 		  print "<input type=hidden name=action value=\"admin\">\n";
@@ -2755,7 +2756,7 @@ if ($in{'action'} ne 'admin') {
 		print "<input type=hidden name=page value=\"$next_line\">\n";
 		print "<input type=hidden name=mode value=rest>\n";
 		print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
-		print "<input type=submit value=\"次の親記事$pagelog件\">\n";
+		print "<input type=submit value=\"次の親記事 $pagelog 件\">\n";
 
 		if ($in{'action'} eq 'admin') {
 		  print "<input type=hidden name=action value=\"admin\">\n";
