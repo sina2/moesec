@@ -3,7 +3,7 @@
 $Settingfile = './moe_bbs_cnf.pl';
 
 use utf8;
-binmode(STDOUT,":utf8");
+binmode( STDOUT, ":utf8" );
 
 #for sysyopen()
 use Fcntl;
@@ -12,10 +12,11 @@ use Fcntl;
 #use Jcode;
 
 # 設定ファイル読み込み
-if ( -f "$Settingfile" ){
-	require $Settingfile;
-}else{
-	require './moe_bbs_cnf.pl.md';
+if ( -f "$Settingfile" ) {
+    require $Settingfile;
+}
+else {
+    require './moe_bbs_cnf.pl.md';
 }
 
 require './cgi-lib.pl';
@@ -23,26 +24,29 @@ require './cgi-lib.pl';
 $SCRIPT = './moe_bbs_adm.cgi';
 $method = 'POST';
 &form_decode;
-if ($ENV{'REQUEST_METHOD'} eq "POST") { read(STDIN, $buffer, $ENV{'CONTENT_LENGTH'}); }
+if ( $ENV{'REQUEST_METHOD'} eq "POST" ) {
+    read( STDIN, $buffer, $ENV{'CONTENT_LENGTH'} );
+}
 else { $buffer = $ENV{'QUERY_STRING'}; }
 
 if ($buffer) {
-	@pairs = split(/&/,$buffer);
-	foreach $pair (@pairs) {
-		($name, $value) = split(/=/, $pair);
-		$value =~ tr/+/ /;
-		$value =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
-		#&jcode'convert(*value,$charset);
-		#Jcode::convert(*value,$charset);
-		$value =~ s/\r//g;
-		$FORM{$name} = $value;
-	}
+    @pairs = split( /&/, $buffer );
+    foreach $pair (@pairs) {
+        ( $name, $value ) = split( /=/, $pair );
+        $value =~ tr/+/ /;
+        $value =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
+
+        #&jcode'convert(*value,$charset);
+        #Jcode::convert(*value,$charset);
+        $value =~ s/\r//g;
+        $FORM{$name} = $value;
+    }
 }
 
-   if ($FORM{"mode"} eq "changeAdminPass") {&pass;&changeAdminPass;}
-elsif ($FORM{"mode"} eq "editAdminPass")   {&pass;&editAdminPass;}
-elsif ($FORM{"mode"} eq "changeConfig")    {&pass;&changeConfig;}
-elsif ($FORM{"mode"} eq "editConfig")      {&pass;&editConfig;}
+if    ( $FORM{"mode"} eq "changeAdminPass" ) { &pass; &changeAdminPass; }
+elsif ( $FORM{"mode"} eq "editAdminPass" )   { &pass; &editAdminPass; }
+elsif ( $FORM{"mode"} eq "changeConfig" )    { &pass; &changeConfig; }
+elsif ( $FORM{"mode"} eq "editConfig" )      { &pass; &editConfig; }
 
 # 管理メニューの表示 #
 &header;
@@ -60,64 +64,68 @@ print qq(
 &footer;
 exit;
 
-sub pass { # 管理用パスワードによる認証 
+sub pass {    # 管理用パスワードによる認証
 
-#	if ($adminPass ne crypt($FORM{'plainAdminPass'},$adminPass) 
-        if ($adminPass ne crypt($FORM{'plainAdminPass'},substr($adminPass,0,2))
-	&& $adminPass) {
+    #	if ($adminPass ne crypt($FORM{'plainAdminPass'},$adminPass)
+    if ( $adminPass ne
+        crypt( $FORM{'plainAdminPass'}, substr( $adminPass, 0, 2 ) )
+        && $adminPass )
+    {
 
-&header;
-	print qq(
+        &header;
+        print qq(
 		<center><br><br><br><br>
 		<h3 align="center">パスワードが間違っています。</h3>
 		<h3 align="center">ブラウザのBACKボタンで戻ってやり直してください。</h3></center><P><hr><P>
 	);
-&footer;
-	exit;
-	}
+        &footer;
+        exit;
+    }
 }
 
-sub changeAdminPass { # 管理用パスワードの書き換え
+sub changeAdminPass {    # 管理用パスワードの書き換え
 
-srand(time);
-$crypted = crypt($FORM{'newAdminPass'},int(rand(90))+10);
+    srand(time);
+    $crypted = crypt( $FORM{'newAdminPass'}, int( rand(90) ) + 10 );
 
-if (!$FORM{'newAdminPass'}) {$crypted = '';}
-#open(LOG,"$Settingfile") || die;
-if ( -f "$Settingfile" ){
-	sysopen(LOG,$Settingfile,O_RDONLY) || die;
-}else{
-	sysopen(LOG,"./moe_bbs_cnf.pl.md",O_RDONLY) || die;
-}
+    if ( !$FORM{'newAdminPass'} ) { $crypted = ''; }
 
-@lines = <LOG>;
-close(LOG);
-foreach $buf(@lines){ utf8::decode($buf) };
+    #open(LOG,"$Settingfile") || die;
+    if ( -f "$Settingfile" ) {
+        sysopen( LOG, $Settingfile, O_RDONLY ) || die;
+    }
+    else {
+        sysopen( LOG, "./moe_bbs_cnf.pl.md", O_RDONLY ) || die;
+    }
 
-for ($i=0; $i<=$#lines; $i++) {
-	if ($lines[$i] =~ /^\$adminPass.*=/) { last; }
-}
-$lines[$i] = "\$adminPass = '$crypted';\n";
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-#open(LOG,">$Settingfile") || die;
-sysopen(LOG,"$Settingfile",O_WRONLY |O_TRUNC |O_CREAT ) || die;
-print LOG @lines;
-close(LOG);
+    for ( $i = 0; $i <= $#lines; $i++ ) {
+        if ( $lines[$i] =~ /^\$adminPass.*=/ ) { last; }
+    }
+    $lines[$i] = "\$adminPass = '$crypted';\n";
 
-&header;
-print qq(
+    #open(LOG,">$Settingfile") || die;
+    sysopen( LOG, "$Settingfile", O_WRONLY | O_TRUNC | O_CREAT ) || die;
+    print LOG @lines;
+    close(LOG);
+
+    &header;
+    print qq(
     <center>
 	<META HTTP-EQUIV="Refresh" CONTENT="0;URL=$SCRIPT?bg_img=$bg_img">
 	<a href="admin.cgi">Please click here.</a></center><P><hr><P>
 );
-&footer;
-exit;
+    &footer;
+    exit;
 }
 
-sub editAdminPass { # 管理用パスワード変更フォームの表示
+sub editAdminPass {    # 管理用パスワード変更フォームの表示
 
-&header;
-print qq(
+    &header;
+    print qq(
 	<form action="$SCRIPT" method="$method">
     
 	<center><h4>管理用パスワードの変更</h4>
@@ -129,73 +137,79 @@ print qq(
 	<br><br><br>
 	</form></center><P><hr><P>
 );
-&footer;
-exit;
+    &footer;
+    exit;
 }
 
-sub changeConfig { # 設定の書き換え
+sub changeConfig {    # 設定の書き換え
 
-#open(LOG,"$Settingfile") || die;
-if ( -f "$Settingfile" ){
-	sysopen(LOG,$Settingfile,O_RDONLY) || die;
-}else{
-	sysopen(LOG,"./moe_bbs_cnf.pl.md",O_RDONLY) || die;
-}
+    #open(LOG,"$Settingfile") || die;
+    if ( -f "$Settingfile" ) {
+        sysopen( LOG, $Settingfile, O_RDONLY ) || die;
+    }
+    else {
+        sysopen( LOG, "./moe_bbs_cnf.pl.md", O_RDONLY ) || die;
+    }
 
-@lines = <LOG>;
-close(LOG);
-foreach $buf(@lines){ utf8::decode($buf) };
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-for ($i=0; $i<=$#lines; $i++) {
-	if ($lines[$i] =~ /^####\sSYSTEM/) { last; }
+    for ( $i = 0; $i <= $#lines; $i++ ) {
+        if ( $lines[$i] =~ /^####\sSYSTEM/ ) { last; }
 
-	if ($_DATA_ == 1 && $lines[$i] !~ "_DATA_") {$lines[$i] = ''; next;}
-	$_DATA_ = 0;
+        if ( $_DATA_ == 1 && $lines[$i] !~ "_DATA_" ) {
+            $lines[$i] = '';
+            next;
+        }
+        $_DATA_ = 0;
 
-	if ($lines[$i] =~ /^\$(\w+).*=.*<<"_DATA_";/) {
-		$lines[$i] = "\$$1 = <<\"_DATA_\";\n$FORM{$1}\n";
-		$_DATA_ = 1;
-	}
-	elsif ($lines[$i] =~ /^\$(\w+).*=.*'.*'/) {
-		$FORM{$1} =~ s/'/&#39;/g;
-		$lines[$i] = "\$$1 = '$FORM{$1}';\n";
-	}
-	elsif ($lines[$i] =~ /^\$(\w+).*=.*".*"/) {
-		$FORM{$1} =~ s/"/&quot;/g;
-		$lines[$i] = "\$$1 = \"$FORM{$1}\";\n";
-	}
-	elsif ($lines[$i] =~ /^\@(\w+).*=.*\(.*\)/) {
-		@FORM = ();
-		$name = $1;
-		$FORM{$name} =~ s/'/&#39;/g;
-		@FORM = split (/\n/, $FORM{$name});
-		$FORM{$name} = join("','" , @FORM);
-		if ($FORM{$name}) {$FORM{$name} = "'$FORM{$name}'";}
-		$lines[$i] = "\@$name = ($FORM{$name});\n";
-		$name = '';
-	}
-}
-#open(LOG,">$Settingfile") || die;
-sysopen(LOG,"$Settingfile", O_WRONLY | O_TRUNC |O_CREAT ) || die;
-print LOG @lines;
-close(LOG);
+        if ( $lines[$i] =~ /^\$(\w+).*=.*<<"_DATA_";/ ) {
+            $lines[$i] = "\$$1 = <<\"_DATA_\";\n$FORM{$1}\n";
+            $_DATA_ = 1;
+        }
+        elsif ( $lines[$i] =~ /^\$(\w+).*=.*'.*'/ ) {
+            $FORM{$1} =~ s/'/&#39;/g;
+            $lines[$i] = "\$$1 = '$FORM{$1}';\n";
+        }
+        elsif ( $lines[$i] =~ /^\$(\w+).*=.*".*"/ ) {
+            $FORM{$1} =~ s/"/&quot;/g;
+            $lines[$i] = "\$$1 = \"$FORM{$1}\";\n";
+        }
+        elsif ( $lines[$i] =~ /^\@(\w+).*=.*\(.*\)/ ) {
+            @FORM = ();
+            $name = $1;
+            $FORM{$name} =~ s/'/&#39;/g;
+            @FORM = split( /\n/, $FORM{$name} );
+            $FORM{$name} = join( "','", @FORM );
+            if ( $FORM{$name} ) { $FORM{$name} = "'$FORM{$name}'"; }
+            $lines[$i] = "\@$name = ($FORM{$name});\n";
+            $name = '';
+        }
+    }
 
-&header;
-print qq(
+    #open(LOG,">$Settingfile") || die;
+    sysopen( LOG, "$Settingfile", O_WRONLY | O_TRUNC | O_CREAT ) || die;
+    print LOG @lines;
+    close(LOG);
+
+    &header;
+    print qq(
 	<center>
 	<META HTTP-EQUIV="Refresh" CONTENT="0;URL=$SCRIPT?bg_img=$bg_img">
 	<a href="$SCRIPT?bg_img=$bg_img">Please click here.</a></center>
 );
-&footer;
-exit;
+    &footer;
+    exit;
 
 }
 
 sub editConfig {
-# 設定変更フォームの表示 #
-&form_decode;
-&header;
-print qq(
+
+    # 設定変更フォームの表示 #
+    &form_decode;
+    &header;
+    print qq(
 [<a href=$script>掲示板に戻る</a>]
 <form action="$SCRIPT" method="$method">
 <input type=hidden name=bg_img value="$bg_img">
@@ -204,65 +218,79 @@ print qq(
 </div>
 );
 
-$system = 0;
-#open(LOG,"$Settingfile") || die;
-if ( -f "$Settingfile" ){
-	sysopen(LOG,$Settingfile,O_RDONLY) || die;
-}else{
-	sysopen(LOG,"./moe_bbs_cnf.pl.md",O_RDONLY) || die;
-}
-@lines = <LOG>;
-close(LOG);
-foreach $buf(@lines){ utf8::decode($buf) };
+    $system = 0;
 
-foreach $logline (@lines) {
-	if ($logline eq "\n") {next;}
-	if ($_DATA_ == 1 && $logline !~ "_DATA_") {next;}
-	$_DATA_ = 0;
-	if ($logline =~ "^# (.+)") {
-	if ($opentable == 1) {$opentable = 0;print "</table></div><br><br>";}
-	print "■ $1<B></B><p>\n";
-	print "<div align='center'>\n";
-	print "<table border=1 width=97% cellpadding=2 cellspacing=0 bordercolorlight='#999999' bordercolordark='#999999'>\n";
-	$opentable = 1;
-	} elsif ($logline =~ /^####\sSYSTEM/) {
-		$system = 1;
-	} elsif ($logline =~ /^##/) {
-		if ($logline =~ /(####)/) { next; }
-		if ($logline =~ /(^###|^##)(.+)/) {$menu = $2;}
-		print "<tr><td>";
-		if ($logline !~ /###/) { print "<font color='#ff0000'>*</font>"; }
-		print "<font size=2>$menu</font></td>";
-	} elsif (!$system) {
-	if ($logline =~ /<<"_DATA_";/) {
-	if ($logline =~ /^\$(\w+).*=/) {$name = $1;}
-	$$name =~ s/\s*$//;
-	print "<td><TEXTAREA NAME='$name' ROWS=4 COLS=40>$$name</textarea></td></tr>\n";
-	$_DATA_ = 1;
-	}
-	elsif ($logline =~ /^\$(\w+).*=/) {
-	$name = $1;
-print <<"_HTML_";
+    #open(LOG,"$Settingfile") || die;
+    if ( -f "$Settingfile" ) {
+        sysopen( LOG, $Settingfile, O_RDONLY ) || die;
+    }
+    else {
+        sysopen( LOG, "./moe_bbs_cnf.pl.md", O_RDONLY ) || die;
+    }
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
+
+    foreach $logline (@lines) {
+        if ( $logline eq "\n" )                     { next; }
+        if ( $_DATA_ == 1 && $logline !~ "_DATA_" ) { next; }
+        $_DATA_ = 0;
+        if ( $logline =~ "^# (.+)" ) {
+            if ( $opentable == 1 ) {
+                $opentable = 0;
+                print "</table></div><br><br>";
+            }
+            print "■ $1<B></B><p>\n";
+            print "<div align='center'>\n";
+            print
+                "<table border=1 width=97% cellpadding=2 cellspacing=0 bordercolorlight='#999999' bordercolordark='#999999'>\n";
+            $opentable = 1;
+        }
+        elsif ( $logline =~ /^####\sSYSTEM/ ) {
+            $system = 1;
+        }
+        elsif ( $logline =~ /^##/ ) {
+            if ( $logline =~ /(####)/ )         { next; }
+            if ( $logline =~ /(^###|^##)(.+)/ ) { $menu = $2; }
+            print "<tr><td>";
+            if ( $logline !~ /###/ ) {
+                print "<font color='#ff0000'>*</font>";
+            }
+            print "<font size=2>$menu</font></td>";
+        }
+        elsif ( !$system ) {
+            if ( $logline =~ /<<"_DATA_";/ ) {
+                if ( $logline =~ /^\$(\w+).*=/ ) { $name = $1; }
+                $$name =~ s/\s*$//;
+                print
+                    "<td><TEXTAREA NAME='$name' ROWS=4 COLS=40>$$name</textarea></td></tr>\n";
+                $_DATA_ = 1;
+            }
+            elsif ( $logline =~ /^\$(\w+).*=/ ) {
+                $name = $1;
+                print <<"_HTML_";
 	<td>
 	<input name='$name' value='$$name' size='40'>
 	</td></tr>
 _HTML_
-		}
-	elsif ($logline =~ /^\@(\w+).*=/) {
-	$name = $1;
-	$$name = join("\n" , @$name);
-print <<"_HTML_";
+            }
+            elsif ( $logline =~ /^\@(\w+).*=/ ) {
+                $name  = $1;
+                $$name = join( "\n", @$name );
+                print <<"_HTML_";
 	<td>
 	<TEXTAREA NAME='$name' ROWS=4 COLS=40>$$name</textarea>
 	</td></tr>
 _HTML_
-		}	} else {
-		/^\$(\w+).*=.*"(.*)"/;
-		print "<input type=\"hidden\" name=\"$1\" value=\"$2\">\n";
-	}
-}
-close(LOG);
-		print qq(
+            }
+        }
+        else {
+            /^\$(\w+).*=.*"(.*)"/;
+            print "<input type=\"hidden\" name=\"$1\" value=\"$2\">\n";
+        }
+    }
+    close(LOG);
+    print qq(
 			</table>
 			</div><center><p>
 			<input type="hidden" name="plainAdminPass" value="$FORM{'plainAdminPass'}">
@@ -272,23 +300,23 @@ close(LOG);
 			<br><br><br>
 			</form></center><P><hr><P>
 		);
-&footer;
-		exit;
-		
+    &footer;
+    exit;
+
 }
 
 ## --- HTMLのヘッダー
 sub header {
-$bg_img = $in{'bg_img'};
-	if($css){
-	if ($backgif) { $bgpic = $backgif; }
-	elsif ($bg_img) { $bgpic = $bg_img; }
-	$bdcss="body{ background:url($bgpic) $bgrep $bgatc $bg_pos}";
-	if($ENV{'HTTP_USER_AGENT'} !~ /MSIE/){$css = 0;}
-	}
+    $bg_img = $in{'bg_img'};
+    if ($css) {
+        if    ($backgif) { $bgpic = $backgif; }
+        elsif ($bg_img)  { $bgpic = $bg_img; }
+        $bdcss = "body{ background:url($bgpic) $bgrep $bgatc $bg_pos}";
+        if ( $ENV{'HTTP_USER_AGENT'} !~ /MSIE/ ) { $css = 0; }
+    }
 
-	print "Content-type: text/html\n\n";
-	print <<"EOM";
+    print "Content-type: text/html\n\n";
+    print <<"EOM";
 <!doctype html>
 <html>
 <head>
@@ -326,16 +354,20 @@ background-color : #ffffff;
 </head>
 EOM
 
-	# bodyタグ
-	if ($backgif && !$css) { $bgkey = "background=\"$backgif\" bgcolor=$bgcolor"; }
-	elsif ($bg_img && !$css) { $bgkey = "background=\"$bg_img\" bgcolor=$bgcolor"; }
-	else { $bgkey = "bgcolor=$bgcolor"; }
-	print "<body $bgkey text=$text link=$link vlink=$vlink alink=$alink>\n";
+    # bodyタグ
+    if ( $backgif && !$css ) {
+        $bgkey = "background=\"$backgif\" bgcolor=$bgcolor";
+    }
+    elsif ( $bg_img && !$css ) {
+        $bgkey = "background=\"$bg_img\" bgcolor=$bgcolor";
+    }
+    else { $bgkey = "bgcolor=$bgcolor"; }
+    print "<body $bgkey text=$text link=$link vlink=$vlink alink=$alink>\n";
 }
 
 ## --- HTMLのフッター
 sub footer {
-	print <<"_HTML_";
+    print <<"_HTML_";
 <center>$banner2<P><small>
 <br>
 萌々ぼ〜ど2001 by えうのす ＆ R七瀬<BR>
@@ -344,32 +376,33 @@ sub footer {
 </small></center>
 _HTML_
 
-	$id1 = "$yeart$mont$mdayt$hourt$mint$sect";
-	$id2 = rand(1000000000);
-	$id2 = sprintf("%.10d",$id2);
-	for( $t=0; $t<32; $t++ ){ 
-	$id3 .= $st_table[ int( @string_table * rand() ) ]; }
-print "</body></html>";
-if($nobanner){print "";}
+    $id1 = "$yeart$mont$mdayt$hourt$mint$sect";
+    $id2 = rand(1000000000);
+    $id2 = sprintf( "%.10d", $id2 );
+    for ( $t = 0; $t < 32; $t++ ) {
+        $id3 .= $st_table[ int( @string_table * rand() ) ];
+    }
+    print "</body></html>";
+    if ($nobanner) { print ""; }
 }
 
 sub form_decode {
 
-	&ReadParse;
-	while (($name,$value) = each %in) {
+    &ReadParse;
+    while ( ( $name, $value ) = each %in ) {
 
-		if ($name !~ /icon_file/){
+        if ( $name !~ /icon_file/ ) {
 
-		# 文字コードをEUC変換
-		#&jcode'convert(*value,'euc');
-		#Jcode::convert(*value,'euc');
-		utf8::decode($value);
+            # 文字コードをEUC変換
+            #&jcode'convert(*value,'euc');
+            #Jcode::convert(*value,'euc');
+            utf8::decode($value);
 
-		# 一括削除用
-		if($name eq 'del'){@del=split(/\0/,$value);}
+            # 一括削除用
+            if ( $name eq 'del' ) { @del = split( /\0/, $value ); }
 
-		$FORM{$name} = $value;
+            $FORM{$name} = $value;
 
-		}
-	}
+        }
+    }
 }

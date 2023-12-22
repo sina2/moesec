@@ -1,7 +1,7 @@
 #!/usr/bin/perl -T
 
 use utf8;
-binmode(STDOUT,":utf8");
+binmode( STDOUT, ":utf8" );
 
 # jcode.plが同一ディレクトリにある場合
 #require './jcode.pl';
@@ -12,15 +12,16 @@ use Fcntl;
 
 # しぃじぃあぃぱ〜るぅ〜
 require './cgi-lib.pl';
+
 # 設定ファイル読み込み
-if ( -f "./moe_bbs_cnf.pl" ){
-	require './moe_bbs_cnf.pl';
-}else{
-	require './moe_bbs_cnf.pl.md';
+if ( -f "./moe_bbs_cnf.pl" ) {
+    require './moe_bbs_cnf.pl';
+}
+else {
+    require './moe_bbs_cnf.pl.md';
 }
 utf8::decode($title);
 utf8::decode($pagelog);
-
 
 # バージョン情報
 $ver = '萌々ぼ〜ど2001 Ver0.54';
@@ -29,15 +30,18 @@ $ver = '萌々ぼ〜ど2001 Ver0.54';
 #  これ以降は改造したい方だけが変更してください  #
 #================================================#
 
-
 #$cgi_lib'maxdata bug
-$cgi_lib'maxdata=$maxdata;
+$cgi_lib'maxdata = $maxdata;
+
 #'
 
 # bgm_mime-type
-%ok_ad=("wav","wav","mid","mid","mpeg","mp3","x-ms-asf","asf","x-ms-wma","wma");
+%ok_ad = (
+    "wav",      "wav", "mid",      "mid", "mpeg", "mp3",
+    "x-ms-asf", "asf", "x-ms-wma", "wma"
+);
 
-if($icon_dir2){$icon_dir = $icon_dir2;}
+if ($icon_dir2) { $icon_dir = $icon_dir2; }
 
 @string_table = split( //, $string_table );
 
@@ -45,120 +49,148 @@ if($icon_dir2){$icon_dir = $icon_dir2;}
 &form_decode;
 
 ## 各種制限 ##
-if($rf_etc){
+if ($rf_etc) {
 
-	## リファ
-	if($ref_rf){
-		$ref=$ENV{'HTTP_REFERER'};
-		push(@call_bbs,"http://$ENV{'SERVER_NAME'}");
-		foreach(@call_bbs){
-			if($ref =~/^$_/i){$ref_on = 1;}
-		}
-	if(!$ref_on){$err_on = "referer ";$err_on2 = "$ref ";&error("@call_bbs");}
-	}
+    ## リファ
+    if ($ref_rf) {
+        $ref = $ENV{'HTTP_REFERER'};
+        push( @call_bbs, "http://$ENV{'SERVER_NAME'}" );
+        foreach (@call_bbs) {
+            if ( $ref =~ /^$_/i ) { $ref_on = 1; }
+        }
+        if ( !$ref_on ) {
+            $err_on  = "referer ";
+            $err_on2 = "$ref ";
+            &error("@call_bbs");
+        }
+    }
 
-	$ip = $ENV{'REMOTE_ADDR'};
-	foreach(@rf_ip){
-		if($ip =~ /$_/){$err_on = "$err_on\IP ";$err_on2 = "$err_on2$ip ";last;}
-	}
-	if(@rf_host){
-		$host = $ENV{'REMOTE_HOST'};
-		if (!$host || $host eq "$ip") {
-			$host = gethostbyaddr(pack("C4", split(/\./,$ip)), 2);
-		}
-		if (!$host) { $host = $ip; }
-		foreach(@rf_host){
-			if($host =~ /$_/){$err_on = "$err_on\host ";$err_on2 = "$err_on2$host ";last;}
-		}
-	}
+    $ip = $ENV{'REMOTE_ADDR'};
+    foreach (@rf_ip) {
+        if ( $ip =~ /$_/ ) {
+            $err_on  = "$err_on\IP ";
+            $err_on2 = "$err_on2$ip ";
+            last;
+        }
+    }
+    if (@rf_host) {
+        $host = $ENV{'REMOTE_HOST'};
+        if ( !$host || $host eq "$ip" ) {
+            $host = gethostbyaddr( pack( "C4", split( /\./, $ip ) ), 2 );
+        }
+        if ( !$host ) { $host = $ip; }
+        foreach (@rf_host) {
+            if ( $host =~ /$_/ ) {
+                $err_on  = "$err_on\host ";
+                $err_on2 = "$err_on2$host ";
+                last;
+            }
+        }
+    }
 
-	foreach(@rf_name){
-		#&get_cookie;$in{'name'} = $c_name;
-		if($in{'name'} =~ /$_/){$err_on = "$err_on\IP ";$err_on2 = "$err_on2$in{'name'} ";last;}
-	}
+    foreach (@rf_name) {
+
+        #&get_cookie;$in{'name'} = $c_name;
+        if ( $in{'name'} =~ /$_/ ) {
+            $err_on  = "$err_on\IP ";
+            $err_on2 = "$err_on2$in{'name'} ";
+            last;
+        }
+    }
 
 }
 
-if($err_on){
-	if($rf_etc == 3 || $rf_etc == 1){
-		&get_time;
-		$date3 = sprintf("%04d%02d%02d",$year,$mon,$mday);
-		$err_log="$log_dir$date3\.log";
-		$err_reg = "$date - $ENV{'REMOTE_ADDR'} - $err_on2\r\n";
-		if (-e $err_log){
-			#open(ERL,"$err_log") or &error("$err_log オープン失敗ヽ(´ー｀)ノ");
-			sysopen(ERL,"$err_log",O_RDONLY) or &error("$err_log オープン失敗ヽ(´ー｀)ノ");
-			if($flock){flock(ERL,2) or &error("filelock 失敗ヽ(´ー｀)ノ");}
-			@err_log = <ERL>;
-			close(ERL);
-			foreach $buf(@err_log){ utf8::decode($buf) };
-			$erl_ex=1;
-		}
-		push(@err_log,$err_reg);	
-		if($fll){
-			&fll("err_log.tmp","$err_log",@err_log);
-		}else{
-			#open(ERL,">$err_log") or &error("$err_log オープン失敗ヽ(´ー｀)ノ");
-			sysopen(ERL,"$err_log", O_WRONLY |O_TRUNC | O_CREAT ) or &error("$err_log オープン失敗ヽ(´ー｀)ノ");
-			if($flock){flock(ERL,2) or &error("filelock 失敗ヽ(´ー｀)ノ");}
-			print ERL @err_log;
-			close(ERL);
-			if(!$erl_ex){chmod(oct($vt_pm),$err_log);}
-		}
+if ($err_on) {
+    if ( $rf_etc == 3 || $rf_etc == 1 ) {
+        &get_time;
+        $date3   = sprintf( "%04d%02d%02d", $year, $mon, $mday );
+        $err_log = "$log_dir$date3\.log";
+        $err_reg = "$date - $ENV{'REMOTE_ADDR'} - $err_on2\r\n";
+        if ( -e $err_log ) {
 
-	}
-	if($rf_etc >= 2){
-		if($err_sort){
-			#if ($ENV{PERLXS} eq "PerlIS") {
-			#	print "HTTP/1.0 302 Temporary Redirection\r\n";
-			#	print "Content-type: text/html\n\n";
-			#}
-			if(!$redi){
-				print "Location: $ex_url\n\n";
-			}else{
-				&header;
-				print "<META HTTP-EQUIV=\"Refresh\" Content=0\;url=$ex_url>";
-				&footer;
-			}
-		}else{
-			$no_bk = 1;
-			&error("$err_on 制限にひっかかったかもｗヽ(´ー｀)ノ");
-		}
-	}
+            #open(ERL,"$err_log") or &error("$err_log オープン失敗ヽ(´ー｀)ノ");
+            sysopen( ERL, "$err_log", O_RDONLY )
+                or &error("$err_log オープン失敗ヽ(´ー｀)ノ");
+            if ($flock) { flock( ERL, 2 ) or &error("filelock 失敗ヽ(´ー｀)ノ"); }
+            @err_log = <ERL>;
+            close(ERL);
+            foreach $buf (@err_log) { utf8::decode($buf) }
+            $erl_ex = 1;
+        }
+        push( @err_log, $err_reg );
+        if ($fll) {
+            &fll( "err_log.tmp", "$err_log", @err_log );
+        }
+        else {
+            #open(ERL,">$err_log") or &error("$err_log オープン失敗ヽ(´ー｀)ノ");
+            sysopen( ERL, "$err_log", O_WRONLY | O_TRUNC | O_CREAT )
+                or &error("$err_log オープン失敗ヽ(´ー｀)ノ");
+            if ($flock) { flock( ERL, 2 ) or &error("filelock 失敗ヽ(´ー｀)ノ"); }
+            print ERL @err_log;
+            close(ERL);
+            if ( !$erl_ex ) { chmod( oct($vt_pm), $err_log ); }
+        }
+
+    }
+    if ( $rf_etc >= 2 ) {
+        if ($err_sort) {
+
+            #if ($ENV{PERLXS} eq "PerlIS") {
+            #	print "HTTP/1.0 302 Temporary Redirection\r\n";
+            #	print "Content-type: text/html\n\n";
+            #}
+            if ( !$redi ) {
+                print "Location: $ex_url\n\n";
+            }
+            else {
+                &header;
+                print "<META HTTP-EQUIV=\"Refresh\" Content=0\;url=$ex_url>";
+                &footer;
+            }
+        }
+        else {
+            $no_bk = 1;
+            &error("$err_on 制限にひっかかったかもｗヽ(´ー｀)ノ");
+        }
+    }
 }
 
-if($rf_etc >= 2 && $ck_use){		
-	$tr_ck = 1;
-	&get_cookie;
-	if(!$c_name || !$c_pwd){
-		if($in{name} && $in{pwd}){
-			#if ($ENV{PERLXS} eq "PerlIS") {
-			#	print "HTTP/1.0 302 Temporary Redirection\r\n";
-			#	print "Content-type: text/html\n\n";
-			#}
-			if(!$redi){
-				&set_cookie;
-				print "Location: $script\n";
-				print "\n";
-			}else{
-				&set_cookie;
-				&header;
-				print "<META HTTP-EQUIV=\"Refresh\" Content=0\;url=$script>";
-				&footer;
-			}
-			exit;
-		}
-		&header;
-		if($in{ck_rf}){
-			$ccg = "$icon_dir"."cookie2\.jpg";
-			$cmsg = "いいから食いやがれぇ♪ヽ(´ー｀)ノ";
-			$csmg2 = "<font color=red><b>クッキーを食べないと先に進めませんｗ</b></font>";
-		}else{
-			$ccg = "$icon_dir"."cookie1\.jpg";
-			$cmsg = "クッキーを食べてね♪ヽ(´ー｀)ノ$c_name$c_pwd";
-			$csmg2 = "<a href =\"$script?ck_rf=on\"><b>クッキーを食べないで先に進みたい</b></a>";
-		}
-print <<EOM;
+if ( $rf_etc >= 2 && $ck_use ) {
+    $tr_ck = 1;
+    &get_cookie;
+    if ( !$c_name || !$c_pwd ) {
+        if ( $in{name} && $in{pwd} ) {
+
+            #if ($ENV{PERLXS} eq "PerlIS") {
+            #	print "HTTP/1.0 302 Temporary Redirection\r\n";
+            #	print "Content-type: text/html\n\n";
+            #}
+            if ( !$redi ) {
+                &set_cookie;
+                print "Location: $script\n";
+                print "\n";
+            }
+            else {
+                &set_cookie;
+                &header;
+                print "<META HTTP-EQUIV=\"Refresh\" Content=0\;url=$script>";
+                &footer;
+            }
+            exit;
+        }
+        &header;
+        if ( $in{ck_rf} ) {
+            $ccg   = "$icon_dir" . "cookie2\.jpg";
+            $cmsg  = "いいから食いやがれぇ♪ヽ(´ー｀)ノ";
+            $csmg2 = "<font color=red><b>クッキーを食べないと先に進めませんｗ</b></font>";
+        }
+        else {
+            $ccg  = "$icon_dir" . "cookie1\.jpg";
+            $cmsg = "クッキーを食べてね♪ヽ(´ー｀)ノ$c_name$c_pwd";
+            $csmg2
+                = "<a href =\"$script?ck_rf=on\"><b>クッキーを食べないで先に進みたい</b></a>";
+        }
+        print <<EOM;
 <center><table><tr><td><img src=$ccg><br><center>$cmsg</center></td></tr>
 <tr><td><table border=1 cellspacing=0 width=\"100%\"><tr><th>
 <table>
@@ -174,176 +206,242 @@ $csmg2
 </table>
 </th></tr></table></td></tr></table></form>
 EOM
-		&footer;
-		&exit;
-	}
+        &footer;
+        &exit;
+    }
 }
 
 ## ここまで各種制限 ##
 
 # パスワード確認処理[カ〜ル板の真似]
 #open(DB,"$passfile") || &error("$passfileが無いです");
-sysopen(DB,"$passfile",O_RDONLY | O_CREAT) || &error("$passfileが無いです");
+sysopen( DB, "$passfile", O_RDONLY | O_CREAT ) || &error("$passfileが無いです");
 @lines = <DB>;
 close(DB);
-foreach $buf(@lines){ utf8::decode($buf) };
+foreach $buf (@lines) { utf8::decode($buf) }
 $password = shift(@lines);
-chop($password) if ($password =~ /\n$/);
-($header, $password) = split(/:/, $password);
-if($password =~ /^\$1\$/) {$salt = 3;} else {$salt = 0;}
-if ($header ne 'crypt_password' || $password eq '') {$start2 = 1; &password;}
+chop($password) if ( $password =~ /\n$/ );
+( $header, $password ) = split( /:/, $password );
+if   ( $password =~ /^\$1\$/ ) { $salt = 3; }
+else                           { $salt = 0; }
+
+if ( $header ne 'crypt_password' || $password eq '' ) {
+    $start2 = 1;
+    &password;
+}
 
 ## --- メイン処理
-if ($mode eq "howto") { &howto; }
-if ($mode eq "find") { &find; }
-if ($mode eq "usr_del") { &usr_del; }
-if ($mode eq "msg_del") { &msg_del; }
-if ($mode eq "msg") { &regist; }
-if ($mode eq "res_msg") {&res_msg; }
-if ($mode eq "admin") { &admin; }
-if ($mode eq "admin_del") { &admin_del; }
-if ($mode eq "image") {&icon_exe; &image; }
-if ($mode eq "rest") { &rest; }
-if ($mode eq "rank_rest") { &rank_rest; }
-if ($mode eq "usr_rest") {&usr_rest; }
-if ($mode eq "Reg_usr_rest") { &usr_rest2; }
-if ($mode eq "pass_rest") { &pass_rest; }
-if ($mode eq "mc_ex"){ &mc_ex;}
-if ($mode eq "swf"){ &swf;}
-if ($in{'papost'} eq 'pcode') { &password; }
-if ($new_topic eq "new") {&new_topic;}
-if ($new_topic eq "gazou") { &gazou_topic; }
-if ($new_topic eq "flash") { &flash_topic; }
-if ($in{'rank'}){ &rank;}
+if ( $mode eq "howto" )         { &howto; }
+if ( $mode eq "find" )          { &find; }
+if ( $mode eq "usr_del" )       { &usr_del; }
+if ( $mode eq "msg_del" )       { &msg_del; }
+if ( $mode eq "msg" )           { &regist; }
+if ( $mode eq "res_msg" )       { &res_msg; }
+if ( $mode eq "admin" )         { &admin; }
+if ( $mode eq "admin_del" )     { &admin_del; }
+if ( $mode eq "image" )         { &icon_exe; &image; }
+if ( $mode eq "rest" )          { &rest; }
+if ( $mode eq "rank_rest" )     { &rank_rest; }
+if ( $mode eq "usr_rest" )      { &usr_rest; }
+if ( $mode eq "Reg_usr_rest" )  { &usr_rest2; }
+if ( $mode eq "pass_rest" )     { &pass_rest; }
+if ( $mode eq "mc_ex" )         { &mc_ex; }
+if ( $mode eq "swf" )           { &swf; }
+if ( $in{'papost'} eq 'pcode' ) { &password; }
+if ( $new_topic eq "new" )      { &new_topic; }
+if ( $new_topic eq "gazou" )    { &gazou_topic; }
+if ( $new_topic eq "flash" )    { &flash_topic; }
+if ( $in{'rank'} )              { &rank; }
 
-	# アイコン設定ファイル読み込み
-sub icon_exe{
-	#open(IN,"$icofile") || &error("Can't open $icofile",'NOLOCK');
-	sysopen(IN,"$icofile",O_RDONLY | O_CREAT ) || &error("Can't open $icofile",'NOLOCK');
-	@icons = <IN>;
-	close(IN);
-	foreach $buf(@icons){ utf8::decode($buf) };
-	$Icon_num = @icons;
+# アイコン設定ファイル読み込み
+sub icon_exe {
 
-	# アイコン名前順並び替え
-	if ($nm_st && !$in{sort}){
-	foreach(@icons){($d1,$d2,$d3) = split(/\t/,$_);$ico{$d1} = $d3;$icos{$d1} = $_;}
-	@sorted = sort {$ico{$a} cmp $ico{$b}} keys %ico;
-	$st = 0;	foreach(@sorted){$icons[$st] = $icos{$_} ;++$st;}
-	}
-    
-unshift(@icons,"00\tnone.gif\t無くてﾖｼ♪\t");
-unshift(@icons,"01\trand.gif\tらんだむ♪\t");
+    #open(IN,"$icofile") || &error("Can't open $icofile",'NOLOCK');
+    sysopen( IN, "$icofile", O_RDONLY | O_CREAT )
+        || &error( "Can't open $icofile", 'NOLOCK' );
+    @icons = <IN>;
+    close(IN);
+    foreach $buf (@icons) { utf8::decode($buf) }
+    $Icon_num = @icons;
 
+    # アイコン名前順並び替え
+    if ( $nm_st && !$in{sort} ) {
+        foreach (@icons) {
+            ( $d1, $d2, $d3 ) = split( /\t/, $_ );
+            $ico{$d1}  = $d3;
+            $icos{$d1} = $_;
+        }
+        @sorted = sort { $ico{$a} cmp $ico{$b} } keys %ico;
+        $st     = 0;
+        foreach (@sorted) { $icons[$st] = $icos{$_}; ++$st; }
+    }
 
-$i=0;
-	foreach $icon (@icons) {
+    unshift( @icons, "00\tnone.gif\t無くてﾖｼ♪\t" );
+    unshift( @icons, "01\trand.gif\tらんだむ♪\t" );
 
-	if ($icon !~ /^#/) {
-	($Inum[$i],$icon1[$i],$icon2[$i],$usr_n[$i],$usr_p[$i]) = split(/\t/,$icon);
-	if($Inum[$i] =~ /pri_ico/){$icon2[$i] = "$icon2[$i]（$usr_n[$i]専用）";
-	$icon = "$Inum[$i]\t$icon1[$i]\t$icon2[$i]\t$usr_n[$i]\t$usr_p[$i]\t";
-	if(!$in{sort}){push(@pri_ico,$icon);}else{++$i;}
-	}else{++$i;}
-	}
+    $i = 0;
+    foreach $icon (@icons) {
 
-	}
+        if ( $icon !~ /^#/ ) {
+            ( $Inum[$i], $icon1[$i], $icon2[$i], $usr_n[$i], $usr_p[$i] )
+                = split( /\t/, $icon );
+            if ( $Inum[$i] =~ /pri_ico/ ) {
+                $icon2[$i] = "$icon2[$i]（$usr_n[$i]専用）";
+                $icon
+                    = "$Inum[$i]\t$icon1[$i]\t$icon2[$i]\t$usr_n[$i]\t$usr_p[$i]\t";
+                if ( !$in{sort} ) { push( @pri_ico, $icon ); }
+                else              { ++$i; }
+            }
+            else { ++$i; }
+        }
 
-	foreach(@pri_ico){($Inum[$i],$icon1[$i],$icon2[$i],$usr_n[$i],$usr_p[$i]) = split(/\t/,$_);++$i;}
+    }
 
-	$nm_ico_nm  = $Icon_num - @pri_ico;
+    foreach (@pri_ico) {
+        ( $Inum[$i], $icon1[$i], $icon2[$i], $usr_n[$i], $usr_p[$i] )
+            = split( /\t/, $_ );
+        ++$i;
+    }
+
+    $nm_ico_nm = $Icon_num - @pri_ico;
 }
 
 &html_log;
 
 ## --- 記事表示部
 sub html_log {
-	# クッキーを取得
-	&get_cookie;
 
-	# フォーム長を調整
-	&get_agent;
+    # クッキーを取得
+    &get_cookie;
 
-	# ログを読み込み
-	#open(LOG,"$logfile") || &error("Can't open $logfile",'NOLOCK');
-	sysopen(LOG,"$logfile",O_RDONLY | O_CREAT) || &error("Can't open $logfile",'NOLOCK');
-	@lines = <LOG>;
-	close(LOG);
-	foreach $buf(@lines){ utf8::decode($buf) };
+    # フォーム長を調整
+    &get_agent;
 
+    # ログを読み込み
+    #open(LOG,"$logfile") || &error("Can't open $logfile",'NOLOCK');
+    sysopen( LOG, "$logfile", O_RDONLY | O_CREAT )
+        || &error( "Can't open $logfile", 'NOLOCK' );
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-	# 記事番号をカット
-	shift(@lines);
+    # 記事番号をカット
+    shift(@lines);
 
-	# 更新順に並び替え
-	if($in{'dt_sort'}){&dt_sort;}
-	
-	# 親記事のみの配列データを作成
-	@new = ();
-	if($in{'rev_sort'}){@lines = reverse(@lines);}
-	foreach $line (@lines) {
-		local($num,$k,$dt,$na,$em,$sub,$com,
-			$url,$host,$pw,$color,$icon,$b,$up_on,$ImgFile,$pixel) = split(/<>/, $line);
+    # 更新順に並び替え
+    if ( $in{'dt_sort'} ) { &dt_sort; }
 
-		# 親記事を集約
-		if ($k eq "") { push(@new,$line); }
-	if($ImgFile && ($ImgFile !~ /bgm$/) && ($ImgFile !~ /cgm$/) && ($ImgFile !~ /swf$/) && !$bg_img){$bg_img=$ImgFile;}
-	elsif($ImgFile && ($ImgFile =~ /cgm$/) && !$bg_img){$ImgFile =~ s/\.([^.]*)cgm$//;$bg_img=$ImgFile;}
-	}
+    # 親記事のみの配列データを作成
+    @new = ();
+    if ( $in{'rev_sort'} ) { @lines = reverse(@lines); }
+    foreach $line (@lines) {
+        local (
+            $num, $k,     $dt,      $na, $em,    $sub,
+            $com, $url,   $host,    $pw, $color, $icon,
+            $b,   $up_on, $ImgFile, $pixel
+        ) = split( /<>/, $line );
 
-	# レス記事はレス順につけるため配列を逆順にする
-	if(!$in{'rev_sort'}){@lines = reverse(@lines);}
+        # 親記事を集約
+        if ( $k eq "" ) { push( @new, $line ); }
+        if (   $ImgFile
+            && ( $ImgFile !~ /bgm$/ )
+            && ( $ImgFile !~ /cgm$/ )
+            && ( $ImgFile !~ /swf$/ )
+            && !$bg_img )
+        {
+            $bg_img = $ImgFile;
+        }
+        elsif ( $ImgFile && ( $ImgFile =~ /cgm$/ ) && !$bg_img ) {
+            $ImgFile =~ s/\.([^.]*)cgm$//;
+            $bg_img = $ImgFile;
+        }
+    }
 
+    # レス記事はレス順につけるため配列を逆順にする
+    if ( !$in{'rev_sort'} ) { @lines = reverse(@lines); }
 
-	# ヘッダを出力
-	&header;
+    # ヘッダを出力
+    &header;
 
-	# カウンタ処理
-	if ($counter) { &counter; }
+    # カウンタ処理
+    if ($counter) { &counter; }
 
-	# タイトル部
-	if ($title_gif eq '') {
-		$ti_gif="<font color=\"$t_color\" size=6 face=\"$t_face\"><SPAN>$title</SPAN></font>";
-	}
-	else {
-		$ti_gif="<img src=\"$title_gif\" width=\"$tg_w\" height=\"$tg_h\">";
-	}
+    # タイトル部
+    if ( $title_gif eq '' ) {
+        $ti_gif
+            = "<font color=\"$t_color\" size=6 face=\"$t_face\"><SPAN>$title</SPAN></font>";
+    }
+    else {
+        $ti_gif = "<img src=\"$title_gif\" width=\"$tg_w\" height=\"$tg_h\">";
+    }
 
-if ($mode eq "B") {$ds_on="&ds=on";}
+    if ( $mode eq "B" ) { $ds_on = "&ds=on"; }
 
-if($hari_mode){
-if($bgm_up){$bgm_tk="・BGM";}
-$hari_ex="[<a href=\"$script?new_topic=gazou&bg_img=$bg_img$ds_on\"><B>画像$bgm_tk貼\り付け</B></a>]";
-}
-if($flash_mode){
-$flash_ex="[<a href=\"$script?new_topic=flash&bg_img=$bg_img$ds_on\"><B>Flash貼\り付け</B></a>]";
-}
-if($icon_mode){$imd="[<a href=\"$iconCGI?bg_img=$bg_img\">アイコンこ〜な〜</a>][<a href=\"$iconCGI?bg_img=$bg_img&rank=on\">アイコンらんきんぐ</a>]";}
-if($bgm_up){$bgm_tk="・BGM貼\り付け";}
-if($web_mode){$web="[<a href=\"$webedit?bg_img=$bg_img\">設定変更</a>]";}
-if($mode eq "all_log"){$all_log = "&mode=all_log";}
-if(!$in{'dt_sort'}){
-$dt_sort="[<a href='$script?dt_sort=on&bg_img=$bg_img&cnt=no$all_log'>最終レス日順</a>]";
-}else{
-$dt_sort="[<a href=$script?cnt=no$all_log>新着記事順</a>]";
-$hid_dt="<input type=hidden name=dt_sort value=on><input type=hidden name=bg_img value=$bg_img >";
-if($homepage eq $script){$homepage="$homepage?dt_sort=on&bg_img=$bg_img&cnt=no";}
-$dt_log = "&dt_sort=on";
-}
+    if ($hari_mode) {
+        if ($bgm_up) { $bgm_tk = "・BGM"; }
+        $hari_ex
+            = "[<a href=\"$script?new_topic=gazou&bg_img=$bg_img$ds_on\"><B>画像$bgm_tk貼\り付け</B></a>]";
+    }
+    if ($flash_mode) {
+        $flash_ex
+            = "[<a href=\"$script?new_topic=flash&bg_img=$bg_img$ds_on\"><B>Flash貼\り付け</B></a>]";
+    }
+    if ($icon_mode) {
+        $imd
+            = "[<a href=\"$iconCGI?bg_img=$bg_img\">アイコンこ〜な〜</a>][<a href=\"$iconCGI?bg_img=$bg_img&rank=on\">アイコンらんきんぐ</a>]";
+    }
+    if ($bgm_up) { $bgm_tk = "・BGM貼\り付け"; }
+    if ($web_mode) {
+        $web = "[<a href=\"$webedit?bg_img=$bg_img\">設定変更</a>]";
+    }
+    if ( $mode eq "all_log" ) { $all_log = "&mode=all_log"; }
+    if ( !$in{'dt_sort'} ) {
+        $dt_sort
+            = "[<a href='$script?dt_sort=on&bg_img=$bg_img&cnt=no$all_log'>最終レス日順</a>]";
+    }
+    else {
+        $dt_sort = "[<a href=$script?cnt=no$all_log>新着記事順</a>]";
+        $hid_dt
+            = "<input type=hidden name=dt_sort value=on><input type=hidden name=bg_img value=$bg_img >";
+        if ( $homepage eq $script ) {
+            $homepage = "$homepage?dt_sort=on&bg_img=$bg_img&cnt=no";
+        }
+        $dt_log = "&dt_sort=on";
+    }
 
-if(!$in{'rev_sort'}){$rev_sort = "[<a href='$script?rev_sort=on&bg_img=$bg_img&cnt=no$all_log'>旧記事順</a>]";}
-else{
-$rev_sort = "[<a href=$script?cnt=no$all_log>新着記事順</a>]";
-$hid_dt="<input type=hidden name=rev_sort value=on><input type=hidden name=bg_img value=$bg_img >";
-if($homepage eq $script){$homepage="$homepage?rev_sort=on&bg_img=$bg_img&cnt=no";}
-$dt_log = "&rev_sort=on";
-}
+    if ( !$in{'rev_sort'} ) {
+        $rev_sort
+            = "[<a href='$script?rev_sort=on&bg_img=$bg_img&cnt=no$all_log'>旧記事順</a>]";
+    }
+    else {
+        $rev_sort = "[<a href=$script?cnt=no$all_log>新着記事順</a>]";
+        $hid_dt
+            = "<input type=hidden name=rev_sort value=on><input type=hidden name=bg_img value=$bg_img >";
+        if ( $homepage eq $script ) {
+            $homepage = "$homepage?rev_sort=on&bg_img=$bg_img&cnt=no";
+        }
+        $dt_log = "&rev_sort=on";
+    }
 
-if($hari_mode || $bgm_up){$hn_db = "[<a href=\"$script?bg_img=$bg_img&rank=on\">貼\り逃げだ〜び〜</a>]";}
-if($mode eq "all_log"){$alg = "[<a href=\"$script?cnt=no$dt_log\">通常表\示</a>]";}else{$alg = "[<a href=\"$script?mode=all_log&bg_img=$bg_img&cnt=no$dt_log\">全記事表\示</a>]";}
-if($pass_mode){$pm_ex = "[<a href=\"$script?mode=pass_rest&bg_img=$bg_img\">認証pass変更</a>]";}
-if($tg_mc){$tg_mc2 = "[<a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank>マクロ説明</a>]";}
-print <<EOM;
+    if ( $hari_mode || $bgm_up ) {
+        $hn_db = "[<a href=\"$script?bg_img=$bg_img&rank=on\">貼\り逃げだ〜び〜</a>]";
+    }
+    if ( $mode eq "all_log" ) {
+        $alg = "[<a href=\"$script?cnt=no$dt_log\">通常表\示</a>]";
+    }
+    else {
+        $alg
+            = "[<a href=\"$script?mode=all_log&bg_img=$bg_img&cnt=no$dt_log\">全記事表\示</a>]";
+    }
+    if ($pass_mode) {
+        $pm_ex
+            = "[<a href=\"$script?mode=pass_rest&bg_img=$bg_img\">認証pass変更</a>]";
+    }
+    if ($tg_mc) {
+        $tg_mc2
+            = "[<a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank>マクロ説明</a>]";
+    }
+    print <<EOM;
 <center>$banner1<P>
 $ti_gif
 <hr width=\"90%\" size=2>
@@ -374,787 +472,889 @@ $rev_sort
 <td><tr></table>
 <hr width="90%" size=2></center>
 EOM
-&kiji_edit;
+    &kiji_edit;
 }
 
 sub kiji_edit {
 
-	if ($in{'page'} eq '') { $page = 0; } 
-	else { $page = $in{'page'}; }
+    if   ( $in{'page'} eq '' ) { $page = 0; }
+    else                       { $page = $in{'page'}; }
 
-	# 記事数を取得
-	$end_data = @new - 1;
-	$page_end = $page + ($pagelog - 1);
-	if ($page_end >= $end_data) { $page_end = $end_data; }
-	if ($mode eq "all_log" ) { $page_end = $end_data; }
-	foreach ($page .. $page_end) {
-		($number,$k,$date,$name,$email,$sub,
-			$comment,$url,$host,$pwd,$color,$icon,$tbl,$up_on,$ImgFile,$pixel) = split(/<>/, $new[$_]);
+    # 記事数を取得
+    $end_data = @new - 1;
+    $page_end = $page + ( $pagelog - 1 );
+    if ( $page_end >= $end_data ) { $page_end = $end_data; }
+    if ( $mode eq "all_log" )     { $page_end = $end_data; }
+    foreach ( $page .. $page_end ) {
+        (   $number,  $k,     $date,    $name, $email, $sub,
+            $comment, $url,   $host,    $pwd,  $color, $icon,
+            $tbl,     $up_on, $ImgFile, $pixel
+        ) = split( /<>/, $new[$_] );
 
-		$pic_ex="";
-        $yoko_hiritu="";
-        $tate_hiritu="";
-        
+        $pic_ex      = "";
+        $yoko_hiritu = "";
+        $tate_hiritu = "";
+
         chomp $pixel;
-        
-		($email,$mail_ex) = split(/>/,$email);
 
-		$sname = $name;
-		$sname =~ s/＠.*//;
-		$sname =~ s/☆.*//;
-		$sname =~ s/@.*//;
-		$sname =~ s/★.*//;
-        
-			if($email){$name="<a href=\"mailto:$email\">$name</a>"}
+        ( $email, $mail_ex ) = split( />/, $email );
 
-		# URL表示
-		if ($url && $home_icon) {
-			$url = "<a href=\"http://$url\" target='_blank'><img src=\"$icon_dir$home_gif\" border=0 align=top HSPACE=10 WIDTH=\"$home_wid\" HEIGHT=\"$home_hei\" alt='HomePage'></a>";
-		}
-        elsif ($url && !$home_icon) {
-			$url = "&lt;<a href=\"http://$url\" target='_blank'>HOME</a>&gt;";
-		}
-		$tbl_color1 = $tbl_color;
-		$text1 = $text;
-		$sub_color1 = $sub_color;
-        
-		if ($tbl eq 'on') {
-		    $tbl_color1 = $tbl_color2;
-		    $text1 = $text2;
-		    $sub_color1 = $sub_color2;
+        $sname = $name;
+        $sname =~ s/＠.*//;
+        $sname =~ s/☆.*//;
+        $sname =~ s/@.*//;
+        $sname =~ s/★.*//;
+
+        if ($email) { $name = "<a href=\"mailto:$email\">$name</a>" }
+
+        # URL表示
+        if ( $url && $home_icon ) {
+            $url
+                = "<a href=\"http://$url\" target='_blank'><img src=\"$icon_dir$home_gif\" border=0 align=top HSPACE=10 WIDTH=\"$home_wid\" HEIGHT=\"$home_hei\" alt='HomePage'></a>";
         }
-		$up_html="";
+        elsif ( $url && !$home_icon ) {
+            $url = "&lt;<a href=\"http://$url\" target='_blank'>HOME</a>&gt;";
+        }
+        $tbl_color1 = $tbl_color;
+        $text1      = $text;
+        $sub_color1 = $sub_color;
 
-		if ($icon ne "") {$icon_html="<td><img src=\"$icon_dir$icon\"></td>\n"; }
-		else{$icon_html="<td width=37>　</td>\n"; }
-        
-		if($ImgFile =~ /bgm$/){
-		    $ImgFile =~ s/bgm$//;if($ImgFile =~ /\.$/){$ImgFile="$ImgFile"."bgm";}	
-		    $bgm="<b>BGM</b> <a style=text-decoration:none href=$ImgFile target=_blank>DL
+        if ( $tbl eq 'on' ) {
+            $tbl_color1 = $tbl_color2;
+            $text1      = $text2;
+            $sub_color1 = $sub_color2;
+        }
+        $up_html = "";
+
+        if ( $icon ne "" ) {
+            $icon_html = "<td><img src=\"$icon_dir$icon\"></td>\n";
+        }
+        else { $icon_html = "<td width=37>　</td>\n"; }
+
+        if ( $ImgFile =~ /bgm$/ ) {
+            $ImgFile =~ s/bgm$//;
+            if ( $ImgFile =~ /\.$/ ) { $ImgFile = "$ImgFile" . "bgm"; }
+            $bgm
+                = "<b>BGM</b> <a style=text-decoration:none href=$ImgFile target=_blank>DL
             </a>/<a style=text-decoration:none href=./bgsound.cgi?bgm=$ImgFile target=bgm>演奏
 		    </a>/<a style=text-decoration:none href=./bgsound.cgi?mode=no_bgm target=bgm>停止</a>";
-		}
+        }
 
-		elsif($ImgFile =~ /cgm$/){
-		    $ImgFile =~ s/\.([^.]+)\.([^.]*)cgm$//;
-		    $pic = "$ImgFile.$1";$bgm = "$ImgFile.$2";if($bgm =~ /\.$/){$bgm="$bgm"."bgm";}
-		    $bgm="<b>BGM</b> <a style=text-decoration:none href=$bgm target=_blank>DL
+        elsif ( $ImgFile =~ /cgm$/ ) {
+            $ImgFile =~ s/\.([^.]+)\.([^.]*)cgm$//;
+            $pic = "$ImgFile.$1";
+            $bgm = "$ImgFile.$2";
+            if ( $bgm =~ /\.$/ ) { $bgm = "$bgm" . "bgm"; }
+            $bgm
+                = "<b>BGM</b> <a style=text-decoration:none href=$bgm target=_blank>DL
             </a>/<a style=text-decoration:none href=./bgsound.cgi?bgm=$bgm target=bgm>演奏
 		    </a>/<a style=text-decoration:none href=./bgsound.cgi?mode=no_bgm target=bgm>停止</a>";
 
-		    $icon_html="<td>　</td>\n";
-            
-            if ($pixel && $samnail) {
-            
-                ($yoko,$tate) = split(/×/,$pixel);
-                
-                if ($yoko > $sam_wid) {
-                
+            $icon_html = "<td>　</td>\n";
+
+            if ( $pixel && $samnail ) {
+
+                ( $yoko, $tate ) = split( /×/, $pixel );
+
+                if ( $yoko > $sam_wid ) {
+
                     $yoko_hiritu = $sam_wid / $yoko;
-                    $yoko = $sam_wid;
-                    $tate = $tate * $yoko_hiritu;
+                    $yoko        = $sam_wid;
+                    $tate        = $tate * $yoko_hiritu;
                 }
-                
-                if ($tate > $sam_hei) {
-                
+
+                if ( $tate > $sam_hei ) {
+
                     $tate_hiritu = $sam_hei / $tate;
-                    $tate = $sam_hei;
-                    $yoko = $yoko * $tate_hiritu;
+                    $tate        = $sam_hei;
+                    $yoko        = $yoko * $tate_hiritu;
                 }
-                if ($pixel ne "$yoko×$tate") { $pic_ex = "<a href=$pic target=_blank><img src=\"$pic\" width=$yoko height=$tate border=0></a><br><br>\n"; }
+                if ( $pixel ne "$yoko×$tate" ) {
+                    $pic_ex
+                        = "<a href=$pic target=_blank><img src=\"$pic\" width=$yoko height=$tate border=0></a><br><br>\n";
+                }
                 else { $pic_ex = "<img src=\"$pic\"><br><br>\n"; }
             }
             else { $pic_ex = "<img src=\"$pic\"><br><br>\n"; }
-		}
-        
-        elsif($ImgFile =~ /swf$/){
-		    $bgm="<b>Flash</b> <a style=text-decoration:none href=$ImgFile target=$number>開始
+        }
+
+        elsif ( $ImgFile =~ /swf$/ ) {
+            $bgm
+                = "<b>Flash</b> <a style=text-decoration:none href=$ImgFile target=$number>開始
             </a>/<a style=text-decoration:none href=$script?mode=swf target=$number>停止
             </a>/<a style=text-decoration:none href=$ImgFile target=_blank>DL
 		    </a>/<a style=text-decoration:none href=./bgsound.cgi?mode=no_bgm target=bgm>音楽停止</a>";
 
-		    $icon_html="<td>　</td>\n";
-		    $pic_ex = "<IFRAME src=$script?mode=swf scrolling=no width=600 height=480 marginwidth=0 marginheight=0 name=$number></IFRAME><br><br>\n";
-		}
-        
-		elsif(defined($ImgFile) && ($ImgFile ne "")){
-		    $icon_html="<td>　</td>\n";
-            
-            if ($pixel && $samnail) {
-            
-                ($yoko,$tate) = split(/×/,$pixel);
-                
-                if ($yoko > $sam_wid) {
-                
+            $icon_html = "<td>　</td>\n";
+            $pic_ex
+                = "<IFRAME src=$script?mode=swf scrolling=no width=600 height=480 marginwidth=0 marginheight=0 name=$number></IFRAME><br><br>\n";
+        }
+
+        elsif ( defined($ImgFile) && ( $ImgFile ne "" ) ) {
+            $icon_html = "<td>　</td>\n";
+
+            if ( $pixel && $samnail ) {
+
+                ( $yoko, $tate ) = split( /×/, $pixel );
+
+                if ( $yoko > $sam_wid ) {
+
                     $yoko_hiritu = $sam_wid / $yoko;
-                    $yoko = $sam_wid;
-                    $tate = $tate * $yoko_hiritu;
+                    $yoko        = $sam_wid;
+                    $tate        = $tate * $yoko_hiritu;
                 }
-                
-                if ($tate > $sam_hei) {
-                
+
+                if ( $tate > $sam_hei ) {
+
                     $tate_hiritu = $sam_hei / $tate;
-                    $tate = $sam_hei;
-                    $yoko = $yoko * $tate_hiritu;
+                    $tate        = $sam_hei;
+                    $yoko        = $yoko * $tate_hiritu;
                 }
-                if ($pixel ne "$yoko×$tate") { $pic_ex = "<a href=$ImgFile target=_blank><img src=\"$ImgFile\" width=$yoko height=$tate border=0></a><br><br>\n"; }
+                if ( $pixel ne "$yoko×$tate" ) {
+                    $pic_ex
+                        = "<a href=$ImgFile target=_blank><img src=\"$ImgFile\" width=$yoko height=$tate border=0></a><br><br>\n";
+                }
                 else { $pic_ex = "<img src=\"$ImgFile\"><br><br>\n"; }
             }
             else { $pic_ex = "<img src=\"$ImgFile\"><br><br>\n"; }
-		}
-        
+        }
+
         $inf = "";
-        if ($pixel =~ /×/) {
+        if ( $pixel =~ /×/ ) {
             $inf = "<b>IMG</b> ($pixel)";
         }
-        
-		# 自動リンク
-		if ($auto_link) { 
+
+        # 自動リンク
+        if ($auto_link) {
             $comment =~ s/<br>/\r/g;
             &auto_link($comment);
             $comment =~ s/\r/<br>/g;
-		}
-        
+        }
+
         if ($inyou) {
-            if ($tagkey == 0) {
-                $comment =~ s/([>]|^)(&gt;[^<]*)/$1<font color=\"$inyou\">$2<\/font>/g;
+            if ( $tagkey == 0 ) {
+                $comment
+                    =~ s/([>]|^)(&gt;[^<]*)/$1<font color=\"$inyou\">$2<\/font>/g;
             }
             else {
-                $comment =~ s/([>]|^)(>[^<]*)/$1<font color=\"$inyou\">$2<\/font>/g;
+                $comment
+                    =~ s/([>]|^)(>[^<]*)/$1<font color=\"$inyou\">$2<\/font>/g;
             }
         }
 
-	print "<center><TABLE border=1 width='95%' cellpadding=5 cellspacing=2 bordercolor=\"#000000\" bgcolor=\"$tbl_color1\">";
-	print "<TR><TD>";
-	print "<table border=0 cellspacing=0 cellpadding=0><tr>";
-	print "<td valign=top><font color=$text1>[<b>$number</b>] <font color=$sub_color1><b>$sub</b></font>";
-	print "投稿者：<font color=\"$link\"><b>$name</b></font>";
-	print "<small>投稿日：$date</small> <small>$inf $bgm</small> <font face=\"Arial,verdana\">&nbsp; $url</font></td>";
-	print "$up_html";
-	print "<td><form action=\"$script\" method=\"$method\">";
-	print "<input type=hidden name=bg_img value=$bg_img>";
-	print "<input type=hidden name=mode value=\"res_msg\">";
-	print "<input type=hidden name=resno value=\"$number\">";
-	print "<input type=submit value=\"返信\"></td></form>";
-	print "</tr></table>";
-	print "<table border=0 cellspacing=7><tr>";
-	print "$icon_html";
-	print "<td>$pic_ex<font color=\"$color\">$comment</font></td></tr></table>\n";
-      $bgm="";
-	
-## レスメッセージを表示
-		foreach $line (@lines) {
-		    ($rnum,$rk,$rd,$rname,$rem,$rsub,
-			    $rcom,$rurl,$rho,$rp,$rc,$ri,$rb,$rup,$rimg,$rpixel) = split(/<>/,$line);
+        print
+            "<center><TABLE border=1 width='95%' cellpadding=5 cellspacing=2 bordercolor=\"#000000\" bgcolor=\"$tbl_color1\">";
+        print "<TR><TD>";
+        print "<table border=0 cellspacing=0 cellpadding=0><tr>";
+        print
+            "<td valign=top><font color=$text1>[<b>$number</b>] <font color=$sub_color1><b>$sub</b></font>";
+        print "投稿者：<font color=\"$link\"><b>$name</b></font>";
+        print
+            "<small>投稿日：$date</small> <small>$inf $bgm</small> <font face=\"Arial,verdana\">&nbsp; $url</font></td>";
+        print "$up_html";
+        print "<td><form action=\"$script\" method=\"$method\">";
+        print "<input type=hidden name=bg_img value=$bg_img>";
+        print "<input type=hidden name=mode value=\"res_msg\">";
+        print "<input type=hidden name=resno value=\"$number\">";
+        print "<input type=submit value=\"返信\"></td></form>";
+        print "</tr></table>";
+        print "<table border=0 cellspacing=7><tr>";
+        print "$icon_html";
+        print
+            "<td>$pic_ex<font color=\"$color\">$comment</font></td></tr></table>\n";
+        $bgm = "";
 
-			($rem,$mail_ex) = split(/>/,$rem);
-            
-            $yoko_hiritu="";
-            $tate_hiritu="";
-        
+## レスメッセージを表示
+        foreach $line (@lines) {
+            (   $rnum, $rk,   $rd,   $rname, $rem, $rsub,
+                $rcom, $rurl, $rho,  $rp,    $rc,  $ri,
+                $rb,   $rup,  $rimg, $rpixel
+            ) = split( /<>/, $line );
+
+            ( $rem, $mail_ex ) = split( />/, $rem );
+
+            $yoko_hiritu = "";
+            $tate_hiritu = "";
+
             chomp $rpixel;
-            
-			$sname = $rname;
+
+            $sname = $rname;
             $sname =~ s/＠.*//;
             $sname =~ s/☆.*//;
-	        $sname =~ s/@.*//;
-	        $sname =~ s/★.*//;
-    
-				if($rem){$rname="<a href=\"mailto:$rem\">$rname</a>"}
+            $sname =~ s/@.*//;
+            $sname =~ s/★.*//;
 
-            
-		    if ($number eq "$rk") {
+            if ($rem) { $rname = "<a href=\"mailto:$rem\">$rname</a>" }
 
-			    print "<hr width='85%' size=1 noshade>\n";
-			    print "<table cellspacing=0 cellpadding=0 border=0><tr><td width=37>　</td>\n";
-            
+            if ( $number eq "$rk" ) {
+
+                print "<hr width='85%' size=1 noshade>\n";
+                print
+                    "<table cellspacing=0 cellpadding=0 border=0><tr><td width=37>　</td>\n";
+
                 if ($rimg) {
-                    print "<td colspan=2><font face=\"Arial,verdana\">&nbsp;&nbsp;</font></td>\n";
+                    print
+                        "<td colspan=2><font face=\"Arial,verdana\">&nbsp;&nbsp;</font></td>\n";
                 }
-			    elsif ($ri ne "") {
-				    print "<td><img src=\"$icon_dir$ri\"></td><td><font face=\"Arial,verdana\">&nbsp;&nbsp;</font></td>\n";
-			    }
+                elsif ( $ri ne "" ) {
+                    print
+                        "<td><img src=\"$icon_dir$ri\"></td><td><font face=\"Arial,verdana\">&nbsp;&nbsp;</font></td>\n";
+                }
                 else {
-				    print "<td width=35>　</td><td><font face=\"Arial,verdana\">&nbsp;&nbsp;</font></td>\n";
-			    }
-            
+                    print
+                        "<td width=35>　</td><td><font face=\"Arial,verdana\">&nbsp;&nbsp;</font></td>\n";
+                }
+
                 $inf = "";
-                if ($rpixel =~ /×/) {
+                if ( $rpixel =~ /×/ ) {
                     chomp $rpixel;
                     $inf = "<b>IMG</b> ($rpixel)";
                 }
-            
-			    print "<td><font color=$text1><font color=\"$sub_color1\"><b>$rsub</b></font> ";
-			    print "投稿者：<font color=\"$link\"><b>$rname</b></font> - ";
-			    print "<small>$rd $inf</small> ";
 
-			    # URL表示
-			    if ($rurl && !$home_icon) {
-				    print "&lt;<a href=\"http://$rurl\" target='_top'>HOME</a>&gt;";
-			    }
-                elsif ($rurl && $home_icon) {
-				    print "<a href=\"http://$rurl\" target='_top'><img src=\"$icon_dir$home_gif\" border=0 align=top HSPACE=10 WIDTH=\"$home_wid\" HEIGHT=\"$home_hei\" alt=\"HomePage\"></a>";
-			    }
+                print
+                    "<td><font color=$text1><font color=\"$sub_color1\"><b>$rsub</b></font> ";
+                print "投稿者：<font color=\"$link\"><b>$rname</b></font> - ";
+                print "<small>$rd $inf</small> ";
+
+                # URL表示
+                if ( $rurl && !$home_icon ) {
+                    print
+                        "&lt;<a href=\"http://$rurl\" target='_top'>HOME</a>&gt;";
+                }
+                elsif ( $rurl && $home_icon ) {
+                    print
+                        "<a href=\"http://$rurl\" target='_top'><img src=\"$icon_dir$home_gif\" border=0 align=top HSPACE=10 WIDTH=\"$home_wid\" HEIGHT=\"$home_hei\" alt=\"HomePage\"></a>";
+                }
                 if ($rimg) {
-                
-                    if ($rpixel && $samnail) {
-            
-                        ($yoko,$tate) = split(/×/,$rpixel);
-                
-                        if ($yoko > $sam_wid) {
-                
+
+                    if ( $rpixel && $samnail ) {
+
+                        ( $yoko, $tate ) = split( /×/, $rpixel );
+
+                        if ( $yoko > $sam_wid ) {
+
                             $yoko_hiritu = $sam_wid / $yoko;
-                            $yoko = $sam_wid;
-                            $tate = $tate * $yoko_hiritu;
+                            $yoko        = $sam_wid;
+                            $tate        = $tate * $yoko_hiritu;
                         }
-                
-                        if ($tate > $sam_hei) {
-                
+
+                        if ( $tate > $sam_hei ) {
+
                             $tate_hiritu = $sam_hei / $tate;
-                            $tate = $sam_hei;
-                            $yoko = $yoko * $tate_hiritu;
+                            $tate        = $sam_hei;
+                            $yoko        = $yoko * $tate_hiritu;
                         }
-                        if ($rpixel ne "$yoko×$tate") { print "<br><br><a href=$rimg target=_blank><img src=\"$rimg\" width=$yoko height=$tate border=0></a><br><br>\n"; }
-                        else { print "<br><br><img src=\"$rimg\"><br><br>\n"; }
+                        if ( $rpixel ne "$yoko×$tate" ) {
+                            print
+                                "<br><br><a href=$rimg target=_blank><img src=\"$rimg\" width=$yoko height=$tate border=0></a><br><br>\n";
+                        }
+                        else {
+                            print "<br><br><img src=\"$rimg\"><br><br>\n";
+                        }
                     }
                     else { print "<br><br><img src=\"$rimg\"><br><br>\n"; }
                 }
 
-			    # 自動リンク
-			    if ($auto_link) { 
+                # 自動リンク
+                if ($auto_link) {
                     $rcom =~ s/<br>/\r/g;
                     &auto_link($rcom);
                     $rcom =~ s/\r/<br>/g;
-			    }
-            
+                }
+
                 if ($inyou) {
-                    if ($tagkey == 0) {
-                        $rcom =~ s/([>]|^)(&gt;[^<]*)/$1<font color=\"$inyou\">$2<\/font>/g;
+                    if ( $tagkey == 0 ) {
+                        $rcom
+                            =~ s/([>]|^)(&gt;[^<]*)/$1<font color=\"$inyou\">$2<\/font>/g;
                     }
                     else {
-                        $rcom =~ s/([>]|^)(>[^<]*)/$1<font color=\"$inyou\">$2<\/font>/g;
+                        $rcom
+                            =~ s/([>]|^)(>[^<]*)/$1<font color=\"$inyou\">$2<\/font>/g;
                     }
                 }
-			    print "<br><font color=\"$rc\">$rcom</font></font></td>\n";
+                print "<br><font color=\"$rc\">$rcom</font></font></td>\n";
 
-		        print"</tr></table>\n";
-		    }
-	    }
-	    print "</TD></TR></TABLE><P>\n";
-	}
-	print "<table border=0><tr>\n";
+                print "</tr></table>\n";
+            }
+        }
+        print "</TD></TR></TABLE><P>\n";
+    }
+    print "<table border=0><tr>\n";
 
-	# 改頁処理
-	$next_line = $page_end + 1;
-	$back_line = $page - $pagelog;
+    # 改頁処理
+    $next_line = $page_end + 1;
+    $back_line = $page - $pagelog;
 
-	# 前頁処理
-	if ($back_line >= 0) {
-		print "<td><form method=\"$method\" action=\"$script\">\n";
-		print "<input type=hidden name=cnt value=no>\n";
-		print "<input type=hidden name=page value=\"$back_line\">\n";
-		print "<input type=submit value=\"前の $pagelog 件\">\n";
-		print "$hid_dt";
-		print "</form></td>\n";	
-	}
+    # 前頁処理
+    if ( $back_line >= 0 ) {
+        print "<td><form method=\"$method\" action=\"$script\">\n";
+        print "<input type=hidden name=cnt value=no>\n";
+        print "<input type=hidden name=page value=\"$back_line\">\n";
+        print "<input type=submit value=\"前の $pagelog 件\">\n";
+        print "$hid_dt";
+        print "</form></td>\n";
+    }
 
-	# 次頁処理
-	if ($page_end ne "$end_data") {
-		print "<td><form method=\"$method\" action=\"$script\">\n";
-		print "<input type=hidden name=cnt value=no>\n";
-		print "<input type=hidden name=page value=\"$next_line\">\n";
-		print "<input type=submit value=\"次の $pagelog 件\">\n";
-		print "$hid_dt";
-		print "</form></td>\n";
-	}
+    # 次頁処理
+    if ( $page_end ne "$end_data" ) {
+        print "<td><form method=\"$method\" action=\"$script\">\n";
+        print "<input type=hidden name=cnt value=no>\n";
+        print "<input type=hidden name=page value=\"$next_line\">\n";
+        print "<input type=submit value=\"次の $pagelog 件\">\n";
+        print "$hid_dt";
+        print "</form></td>\n";
+    }
 
-	print "</tr></table><P>\n";
-	&footer;
-	exit;
+    print "</tr></table><P>\n";
+    &footer;
+    exit;
 }
 
 ## --- ログ書き込み処理
 sub regist {
-	# 他サイトからのアクセスを排除
-	if ($base_url) {
-		$ref_url = $ENV{'HTTP_REFERER'};
-		$ref_url =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
 
-		if ($ref_url !~ /$base_url/) {
-			&error("不正なアクセスです",'NOLOCK');
-		}
-	}
+    # 他サイトからのアクセスを排除
+    if ($base_url) {
+        $ref_url = $ENV{'HTTP_REFERER'};
+        $ref_url =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
 
-	# 名前とコメントは必須
-	if ($name eq "") { &error("名前が入力されていません",'NOLOCK'); }
-	if ($comment eq "") { &error("コメントが入力されていません",'NOLOCK'); }
-
-	# 管理アイコンのチェック
-	if ($my_icon && $icon eq "$my_gif") {
-		if (crypt($pwd, substr($password, $salt, 2) ) ne $password) { 
-		    &error("管理用アイコンは管理者専用です",'NOLOCK');
-		}
-	}
-
-	# 提供品チェックにチェックが入っているとき
-	if ($up_check eq 'on' && $up_comment eq ""){
-	    &error("提供品コメントを入力してください",'NOLOCK');
+        if ( $ref_url !~ /$base_url/ ) {
+            &error( "不正なアクセスです", 'NOLOCK' );
+        }
     }
-	elsif($up_check eq 'on'){$up_on="up_exist";}
-	if($up_title eq ""){$up_title=$sub;}
 
-	# ホスト名を取得
-	&get_host;
+    # 名前とコメントは必須
+    if ( $name eq "" )    { &error( "名前が入力されていません",   'NOLOCK' ); }
+    if ( $comment eq "" ) { &error( "コメントが入力されていません", 'NOLOCK' ); }
 
-	# 時間を取得
-	&get_time;
+    # 管理アイコンのチェック
+    if ( $my_icon && $icon eq "$my_gif" ) {
+        if ( crypt( $pwd, substr( $password, $salt, 2 ) ) ne $password ) {
+            &error( "管理用アイコンは管理者専用です", 'NOLOCK' );
+        }
+    }
 
-	# ログを開く
-	if($fll){
-		foreach (1 .. 10) {
-			unless (-e $lockfile) {last;}
-			sleep(1);
-		}
-	}
-	#open(LOG,"$logfile") || &error("Can't open $logfile");
-	sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile");
-	if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-	@lines = <LOG>;
-	close(LOG);
-	foreach $buf(@lines){ utf8::decode($buf) };
+    # 提供品チェックにチェックが入っているとき
+    if ( $up_check eq 'on' && $up_comment eq "" ) {
+        &error( "提供品コメントを入力してください", 'NOLOCK' );
+    }
+    elsif ( $up_check eq 'on' ) { $up_on    = "up_exist"; }
+    if    ( $up_title eq "" )   { $up_title = $sub; }
 
-	# 記事NO処理
-	$oya = $lines[0];
-	$oya =~ s/\n//;
-	shift(@lines);
+    # ホスト名を取得
+    &get_host;
 
-	if($tg_mc){$comment = &tg_en("$comment");}
+    # 時間を取得
+    &get_time;
 
-	# 二重投稿の禁止
-	srand;
-	local($flag) = 0;
-	foreach $line (@lines) {
-		($knum,$kk,$kd,$kname,$kem,$ksub,$kcom) = split(/<>/,$line);
-		if ($name eq "$kname" && $comment eq "$kcom") {
-			$flag=1; last;
-		}
-		if($date eq "$kd"){$und = int(rand(1000));$date = "$date\:$und";}
-	}
-	if ($flag) { &error("二重投稿は禁止です"); }
+    # ログを開く
+    if ($fll) {
+        foreach ( 1 .. 10 ) {
+            unless ( -e $lockfile ) { last; }
+            sleep(1);
+        }
+    }
 
-	# 親記事の場合、記事Noをカウントアップ
-	if ($in{'resno'} eq "") { $oya++; $number=$oya; }
-	else { $number = $oya; }
+    #open(LOG,"$logfile") || &error("Can't open $logfile");
+    sysopen( LOG, "$logfile", O_RDONLY ) || &error("Can't open $logfile");
+    if ( $lockkey == 3 ) { flock( LOG, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗"); }
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-	# 削除キーを暗号化
-	if ($in{'pwd'} ne "") { &passwd_encode($in{'pwd'}); }
+    # 記事NO処理
+    $oya = $lines[0];
+    $oya =~ s/\n//;
+    shift(@lines);
 
-    if ($in{'resno'} && $in{'upfile'}) { $in{'hari'} = "on"; }
+    if ($tg_mc) { $comment = &tg_en("$comment"); }
 
-	## ランキング+認証
+    # 二重投稿の禁止
+    srand;
+    local ($flag) = 0;
+    foreach $line (@lines) {
+        ( $knum, $kk, $kd, $kname, $kem, $ksub, $kcom )
+            = split( /<>/, $line );
+        if ( $name eq "$kname" && $comment eq "$kcom" ) {
+            $flag = 1;
+            last;
+        }
+        if ( $date eq "$kd" ) {
+            $und  = int( rand(1000) );
+            $date = "$date\:$und";
+        }
+    }
+    if ($flag) { &error("二重投稿は禁止です"); }
 
-	$cut_name = $name;
-	$cut_name =~ s/＠.*//;
+    # 親記事の場合、記事Noをカウントアップ
+    if ( $in{'resno'} eq "" ) { $oya++; $number = $oya; }
+    else                      { $number = $oya; }
+
+    # 削除キーを暗号化
+    if ( $in{'pwd'} ne "" ) { &passwd_encode( $in{'pwd'} ); }
+
+    if ( $in{'resno'} && $in{'upfile'} ) { $in{'hari'} = "on"; }
+
+    ## ランキング+認証
+
+    $cut_name = $name;
+    $cut_name =~ s/＠.*//;
     $cut_name =~ s/☆.*//;
-	$cut_name =~ s/@.*//;
-	$cut_name =~ s/★.*//;
+    $cut_name =~ s/@.*//;
+    $cut_name =~ s/★.*//;
 
-	if($fll){
-		foreach (1 .. 10) {
-			unless (-e $rklock) {last;}
-			sleep(1);
-		}
-	}
-	#open(RL,"$rank_log") || &error("Can't open $rank_log");
-	sysopen(RL,"$rank_log",O_RDONLY | O_CREAT ) || &error("Can't open $rank_log");
-	if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-	@rank = <RL>;
-	close(RL);
-	foreach $buf(@rank){ utf8::decode($buf) };
+    if ($fll) {
+        foreach ( 1 .. 10 ) {
+            unless ( -e $rklock ) { last; }
+            sleep(1);
+        }
+    }
 
-	foreach(@rank){
-	    $_ =~ s/\n//;
-	    ($r_name,$r_cnt,$cg_cnt,$bgm_cnt,$flash_cnt,$res_cnt,$r_pass,$last_ac,$rest_cnt,$mcr_cnt) = split(/<>/,$_);
+    #open(RL,"$rank_log") || &error("Can't open $rank_log");
+    sysopen( RL, "$rank_log", O_RDONLY | O_CREAT )
+        || &error("Can't open $rank_log");
+    if ( $lockkey == 3 ) { flock( RL, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗"); }
+    @rank = <RL>;
+    close(RL);
+    foreach $buf (@rank) { utf8::decode($buf) }
 
-	    if($r_name eq $cut_name){
+    foreach (@rank) {
+        $_ =~ s/\n//;
+        (   $r_name,  $r_cnt,  $cg_cnt,  $bgm_cnt,  $flash_cnt,
+            $res_cnt, $r_pass, $last_ac, $rest_cnt, $mcr_cnt
+        ) = split( /<>/, $_ );
 
-	        $last_ac = $mon ;
-	        if($r_pass && $pass_mode){		
-	            $plain_text = $in{'pwd'};
-	            $check = &passwd_decode($r_pass);
-	            if ($check ne 'yes') { &error("$cut_nameさんのパスワードと一致しません"); }
-	            $ps_tr = 1;
-	        }
-            else{$r_pass=$ango;}
+        if ( $r_name eq $cut_name ) {
 
-		    if($in{'hari'}){++$cg_cnt;++$r_cnt;$ck_cnt =1;}
+            $last_ac = $mon;
+            if ( $r_pass && $pass_mode ) {
+                $plain_text = $in{'pwd'};
+                $check      = &passwd_decode($r_pass);
+                if ( $check ne 'yes' ) { &error("$cut_nameさんのパスワードと一致しません"); }
+                $ps_tr = 1;
+            }
+            else { $r_pass = $ango; }
 
-            if($in{'upflash'}){++$flash_cnt;++$r_cnt;$ck_cnt =1;}
+            if ( $in{'hari'} ) { ++$cg_cnt; ++$r_cnt; $ck_cnt = 1; }
 
-		    if($in{'upbgm'}){++$bgm_cnt;++$r_cnt;$ck_cnt =1;}
-		    if($in{'resno'}){++$res_cnt;}
-		    if($mcr_use){++$mcr_cnt;}
-	        $r_ck=1;
-	    }
-	    push(@new_rank,"$r_name<>$r_cnt<>$cg_cnt<>$bgm_cnt<>$flash_cnt<>$res_cnt<>$r_pass<>$last_ac<>$rest_cnt<>$mcr_cnt<>\n");
-	}
+            if ( $in{'upflash'} ) { ++$flash_cnt; ++$r_cnt; $ck_cnt = 1; }
 
-	if(!$r_ck){
-	$cg_cnt = $bgm_cnt = $flash_cnt = 0;
-		if($in{'hari'}){$cg_cnt=1;$ck_cnt =1;}
-		if($in{'upbgm'}){$bgm_cnt=1;$ck_cnt =1;}
-        if($in{'upflash'}){$flash_cnt=1;$ck_cnt =1;}
-		if($in{'resno'}){$res_ct = 1;}
-        
-	    $r_cnt = $cg_cnt + $bgm_cnt + $flash_cnt ;
-	    push(@new_rank,"$cut_name<>$r_cnt<>$cg_cnt<>$bgm_cnt<>$flash_cnt<>$res_ct<>$ango<>$last_ac<>$rest_cnt<>$mcr_cnt<>\n");
-	}
+            if ( $in{'upbgm'} ) { ++$bgm_cnt; ++$r_cnt; $ck_cnt = 1; }
+            if ( $in{'resno'} ) { ++$res_cnt; }
+            if ($mcr_use)       { ++$mcr_cnt; }
+            $r_ck = 1;
+        }
+        push( @new_rank,
+            "$r_name<>$r_cnt<>$cg_cnt<>$bgm_cnt<>$flash_cnt<>$res_cnt<>$r_pass<>$last_ac<>$rest_cnt<>$mcr_cnt<>\n"
+        );
+    }
 
-	# アイコン
+    if ( !$r_ck ) {
+        $cg_cnt = $bgm_cnt = $flash_cnt = 0;
+        if ( $in{'hari'} )    { $cg_cnt    = 1; $ck_cnt = 1; }
+        if ( $in{'upbgm'} )   { $bgm_cnt   = 1; $ck_cnt = 1; }
+        if ( $in{'upflash'} ) { $flash_cnt = 1; $ck_cnt = 1; }
+        if ( $in{'resno'} )   { $res_ct    = 1; }
 
-	&icon_exe;
+        $r_cnt = $cg_cnt + $bgm_cnt + $flash_cnt;
+        push( @new_rank,
+            "$cut_name<>$r_cnt<>$cg_cnt<>$bgm_cnt<>$flash_cnt<>$res_ct<>$ango<>$last_ac<>$rest_cnt<>$mcr_cnt<>\n"
+        );
+    }
 
-	if($in{'icon'} eq "none.gif"){$ico_reg = $in{'icon'};}
-	elsif($in{'icon'} eq "rand.gif"){
+    # アイコン
 
-	    if($rd_pri){$ico_rd = int(rand($Icon_num));}
-	    else{$ico_rd = int(rand($nm_ico_nm));}
+    &icon_exe;
 
-	    splice(@icon1,0,2);
-	    splice(@icon2,0,2);
+    if    ( $in{'icon'} eq "none.gif" ) { $ico_reg = $in{'icon'}; }
+    elsif ( $in{'icon'} eq "rand.gif" ) {
 
-	    if($icon1[$ico_rd]){$ico_reg = "$icon1[$ico_rd]\" alt=\"$icon2[$ico_rd]";$ic_nm = $ico_rd;}
-	    else{$ico_reg = "none.gif";}
-	}
-	else{
+        if   ($rd_pri) { $ico_rd = int( rand($Icon_num) ); }
+        else           { $ico_rd = int( rand($nm_ico_nm) ); }
 
-	    foreach(0 .. $#icon1) {
-	        if($in{'icon'} eq $icon1[$_]){
-	            $ic_nm = $_;
-	            if($Inum[$_] =~/pri_ico/){
-		            #if($cut_name ne $usr_n[$_]){$ico_err = 1;}
-		            $plain_text = $in{'pwd'};
-		            $encode_pwd = $usr_p[$_];
-		            $check = &passwd_decode($encode_pwd);
-		            if ($check ne 'yes') {$ico_err = 1;}
-		            if($ps_tr && ($cut_name eq "$usr_n[$_]")) {$ico_err = 0;}
-		            if($ico_err){
-		                &error("このアイコンは$usr_n[$_]専用です");
-		            }
-	            }
-	            $ico_reg = "$icon1[$_]\" alt=\"$icon2[$_]";last;
-	        }
-	    }
-	}
+        splice( @icon1, 0, 2 );
+        splice( @icon2, 0, 2 );
 
-	if($in{'hari'}){
-	    if ($in{'upfile'}) {
-            $upf_f=1; &UpFile;$up_cg=1;
-	        if($ImgDir2){$ImgFile = "$ImgDir2$imgdata$tail";}
-            
-            if ($tail eq ".jpg") { ($width,$height) = &GetJpegSize($in{'upfile'}); }
-            elsif ($tail eq ".gif") { ($width,$height) = &GetGifSize($in{'upfile'}); }
-            elsif ($tail eq ".png") { ($width,$height) = &get_png_size($in{'upfile'}); }
+        if ( $icon1[$ico_rd] ) {
+            $ico_reg = "$icon1[$ico_rd]\" alt=\"$icon2[$ico_rd]";
+            $ic_nm   = $ico_rd;
+        }
+        else { $ico_reg = "none.gif"; }
+    }
+    else {
+
+        foreach ( 0 .. $#icon1 ) {
+            if ( $in{'icon'} eq $icon1[$_] ) {
+                $ic_nm = $_;
+                if ( $Inum[$_] =~ /pri_ico/ ) {
+
+                    #if($cut_name ne $usr_n[$_]){$ico_err = 1;}
+                    $plain_text = $in{'pwd'};
+                    $encode_pwd = $usr_p[$_];
+                    $check      = &passwd_decode($encode_pwd);
+                    if ( $check ne 'yes' ) { $ico_err = 1; }
+                    if ( $ps_tr && ( $cut_name eq "$usr_n[$_]" ) ) {
+                        $ico_err = 0;
+                    }
+                    if ($ico_err) {
+                        &error("このアイコンは$usr_n[$_]専用です");
+                    }
+                }
+                $ico_reg = "$icon1[$_]\" alt=\"$icon2[$_]";
+                last;
+            }
+        }
+    }
+
+    if ( $in{'hari'} ) {
+        if ( $in{'upfile'} ) {
+            $upf_f = 1;
+            &UpFile;
+            $up_cg = 1;
+            if ($ImgDir2) { $ImgFile = "$ImgDir2$imgdata$tail"; }
+
+            if ( $tail eq ".jpg" ) {
+                ( $width, $height ) = &GetJpegSize( $in{'upfile'} );
+            }
+            elsif ( $tail eq ".gif" ) {
+                ( $width, $height ) = &GetGifSize( $in{'upfile'} );
+            }
+            elsif ( $tail eq ".png" ) {
+                ( $width, $height ) = &get_png_size( $in{'upfile'} );
+            }
             $pixel = "$width×$height";
-	    }
-	}
+        }
+    }
 
-	if ($in{'upflash'}) {
-        $upz_f=1; &UpFile;
-	    if($ImgDir2){$ImgFile = "$ImgDir2$imgdata$tail";}
-	}
-    
-	if($in{'upbgm'}){
-        $upb_f=1;
-	    &UpFile;
-	    $up_bgm=1;
-	    if($up_cg){$b_tail="$b_tail"."cgm";}
-        else{$b_tail="$b_tail"."bgm";}
+    if ( $in{'upflash'} ) {
+        $upz_f = 1;
+        &UpFile;
+        if ($ImgDir2) { $ImgFile = "$ImgDir2$imgdata$tail"; }
+    }
 
-	    if($ImgDir2){$ImgDir = $ImgDir2;}
-	    $ImgFile="$ImgDir$imgdata$w_tail.$b_tail";
-	}
+    if ( $in{'upbgm'} ) {
+        $upb_f = 1;
+        &UpFile;
+        $up_bgm = 1;
+        if   ($up_cg) { $b_tail = "$b_tail" . "cgm"; }
+        else          { $b_tail = "$b_tail" . "bgm"; }
 
-	# クッキーを定義
-	$cook = "name\:$name\,email\:$email\,url\:$url\,pwd\:$pwd\,icon\:$icon\,color\:$color\,mail_ex\:$in{mail_ex}";
+        if ($ImgDir2) { $ImgDir = $ImgDir2; }
+        $ImgFile = "$ImgDir$imgdata$w_tail.$b_tail";
+    }
 
-	if($in{mail_ex}){$email = "$email\>1";}
+    # クッキーを定義
+    $cook
+        = "name\:$name\,email\:$email\,url\:$url\,pwd\:$pwd\,icon\:$icon\,color\:$color\,mail_ex\:$in{mail_ex}";
 
-	# ログをフォーマット
-	$new_msg = "$number<>$in{'resno'}<>$date<>$name<>$email<>$sub<>$comment<>$url<>$host<>$ango<>$color<>$ico_reg<>$in{'Tbl_B'}<>$up_on<>$ImgFile<>$pixel\n";
+    if ( $in{mail_ex} ) { $email = "$email\>1"; }
 
-	## 自動ソート時は、レス記事投稿時は親記事はトップへ移動
-	if ($res_sort && $in{'resno'} ne "") {
-		@res_data = ();
-		@new = ();
-		foreach $line (@lines) {
-		  $flag = 0;
-		  ($num,$k,$d,$na,$em,$sb,$com,$u,$ho,$p,$c,$ico) = split(/<>/,$line);
+    # ログをフォーマット
+    $new_msg
+        = "$number<>$in{'resno'}<>$date<>$name<>$email<>$sub<>$comment<>$url<>$host<>$ango<>$color<>$ico_reg<>$in{'Tbl_B'}<>$up_on<>$ImgFile<>$pixel\n";
 
-		  # 親記事を抜き出す
-		  if ($k eq "" && $in{'resno'} eq "$num") {
-			$new_line = "$line";
-			$flag = 1;
-		  }
-		  # 関連のレス記事を抜き出す
-		  elsif ($k eq "$in{'resno'}") {
-			push(@res_data,$line);
-			$flag = 1;
-		  }
-		  if ($flag == 0) { push(@new,$line); }
-		}
+    ## 自動ソート時は、レス記事投稿時は親記事はトップへ移動
+    if ( $res_sort && $in{'resno'} ne "" ) {
+        @res_data = ();
+        @new      = ();
+        foreach $line (@lines) {
+            $flag = 0;
+            ( $num, $k, $d, $na, $em, $sb, $com, $u, $ho, $p, $c, $ico )
+                = split( /<>/, $line );
 
-		# 関連レス記事をトップへ
-		unshift(@new,@res_data);
+            # 親記事を抜き出す
+            if ( $k eq "" && $in{'resno'} eq "$num" ) {
+                $new_line = "$line";
+                $flag     = 1;
+            }
 
-		# 新規メッセージをトップへ
-		unshift(@new,$new_msg);
+            # 関連のレス記事を抜き出す
+            elsif ( $k eq "$in{'resno'}" ) {
+                push( @res_data, $line );
+                $flag = 1;
+            }
+            if ( $flag == 0 ) { push( @new, $line ); }
+        }
 
-		# 親記事をトップへ
-		unshift(@new,$new_line);
+        # 関連レス記事をトップへ
+        unshift( @new, @res_data );
 
+        # 新規メッセージをトップへ
+        unshift( @new, $new_msg );
 
-	## 親記事の場合、最大記事数を超える記事をカット
-	} elsif ($in{'resno'} eq "") {
+        # 親記事をトップへ
+        unshift( @new, $new_line );
 
-		$i = 0;
-		$stop = 0;
-		foreach $line (@lines) {
-		    ($num,$k,$d,$na,$em,$sb,$com,$u,$ho,$p,$c,$ico,$d,$dup,$img,$si)=split(/<>/,$line);
+        ## 親記事の場合、最大記事数を超える記事をカット
+    }
+    elsif ( $in{'resno'} eq "" ) {
 
-		    if ($k eq "") { 	$i++; }
-		    if ($i > $max-1) {
-			$stop = 1;
+        $i    = 0;
+        $stop = 0;
+        foreach $line (@lines) {
+            (   $num, $k, $d, $na,  $em, $sb,  $com, $u,
+                $ho,  $p, $c, $ico, $d,  $dup, $img, $si
+            ) = split( /<>/, $line );
 
+            if ( $k eq "" ) { $i++; }
+            if ( $i > $max - 1 ) {
+                $stop = 1;
 
-			if($ImgDir2){$img =~ s/^$ImgDir2//;$img = "$ImgDir$img";}
+                if ($ImgDir2) { $img =~ s/^$ImgDir2//; $img = "$ImgDir$img"; }
 
-			if($img =~ /bgm$/){
-			$img =~ s/bgm$//;
-			
-			#ログ互換
-			if($img =~ /\.$/){$img="$img"."bgm";}		
-			
-#			if(-e "$img"){ unlink("$img"); }
-			}
+                if ( $img =~ /bgm$/ ) {
+                    $img =~ s/bgm$//;
 
-			if($img =~ /cgm$/){
-			$img =~ s/\.([^.]+)\.([^.]*)cgm$//;
-			$pic = "$img.$1";$bgm = "$img.$2";
+                    #ログ互換
+                    if ( $img =~ /\.$/ ) { $img = "$img" . "bgm"; }
 
-			#ログ互換
-			if($bgm =~ /\.$/){$bgm="$img.bgm";}
+                    #			if(-e "$img"){ unlink("$img"); }
+                }
 
-#			if(-e "$pic"){ unlink("$pic"); }
-#			if(-e "$bgm"){ unlink("$bgm"); }
-			}
+                if ( $img =~ /cgm$/ ) {
+                    $img =~ s/\.([^.]+)\.([^.]*)cgm$//;
+                    $pic = "$img.$1";
+                    $bgm = "$img.$2";
 
-#			elsif(($img) && (-e "$img")){ unlink("$img"); }
+                    #ログ互換
+                    if ( $bgm =~ /\.$/ ) { $bgm = "$img.bgm"; }
 
-		    }
-		    if ($stop == 0) { push(@new,$line); }
-		}
+                    #			if(-e "$pic"){ unlink("$pic"); }
+                    #			if(-e "$bgm"){ unlink("$bgm"); }
+                }
 
-		## 過去記事生成
-		if ($kflag) {
-			@past_res = reverse(@past_res);
-			push(@past_data,@past_res);
-			&pastlog;
-		}
+                #			elsif(($img) && (-e "$img")){ unlink("$img"); }
 
-		unshift(@new,$new_msg);
+            }
+            if ( $stop == 0 ) { push( @new, $line ); }
+        }
 
-	## レス記事は記事数の調整はしない
-	} else {
-		@res_data = ();
-		@new = ();
+        ## 過去記事生成
+        if ($kflag) {
+            @past_res = reverse(@past_res);
+            push( @past_data, @past_res );
+            &pastlog;
+        }
 
-		foreach $line (@lines) {
-		  $flag = 0;
-		  ($num,$k,$d,$na,$em,$sb,$com,$u,$ho,$p,$c,$ico) = split(/<>/,$line);
+        unshift( @new, $new_msg );
 
-		  # 親記事を抜き出す
-		  if ($k eq "" && $in{'resno'} eq "$num") {
-			$new_line = "$line";
-			$flag = 2;
-		  }
+        ## レス記事は記事数の調整はしない
+    }
+    else {
+        @res_data = ();
+        @new      = ();
 
-		  if ($flag == 0) { push(@new,$line); }
-		  elsif ($flag == 2) {
-			push(@new,$new_line);
-			push(@new,$new_msg);
-		  }
-		}
-	}
+        foreach $line (@lines) {
+            $flag = 0;
+            ( $num, $k, $d, $na, $em, $sb, $com, $u, $ho, $p, $c, $ico )
+                = split( /<>/, $line );
 
-	## だ〜び〜書きこみ
-	if($fll){
-		&fll("$rklock","$rank_log",@new_rank);
-	}else{
+            # 親記事を抜き出す
+            if ( $k eq "" && $in{'resno'} eq "$num" ) {
+                $new_line = "$line";
+                $flag     = 2;
+            }
 
-#open(RL, "+< $rank_log") || &error("Can't open $rank_log");
-sysopen(RL, "$rank_log" ,O_RDWR ) || &error("Can't open $rank_log");
-if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-truncate(RL, 0);
-seek(RL, 0, 0);
-print RL @new_rank;
-close(RL);
+            if    ( $flag == 0 ) { push( @new, $line ); }
+            elsif ( $flag == 2 ) {
+                push( @new, $new_line );
+                push( @new, $new_msg );
+            }
+        }
+    }
 
-	}
+    ## だ〜び〜書きこみ
+    if ($fll) {
+        &fll( "$rklock", "$rank_log", @new_rank );
+    }
+    else {
 
+        #open(RL, "+< $rank_log") || &error("Can't open $rank_log");
+        sysopen( RL, "$rank_log", O_RDWR ) || &error("Can't open $rank_log");
+        if ( $lockkey == 3 ) {
+            flock( RL, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+        }
+        truncate( RL, 0 );
+        seek( RL, 0, 0 );
+        print RL @new_rank;
+        close(RL);
 
-	## アイコンランキング
+    }
 
-	$ex_in_nm = defined $ic_nm;
+    ## アイコンランキング
 
-	if(!$ck_cnt && $ex_in_nm){
+    $ex_in_nm = defined $ic_nm;
 
-	if($fll){
-		foreach (1 .. 10) {
-			unless (-e $irklock) {last;}
-			sleep(1);
-		}
-	}
-	#open(IN,"$i_rank_log") || &error("Can't open $i_rank_log");
-	sysopen(IN,"$i_rank_log",O_RDONLY) || &error("Can't open $i_rank_log");
-	@i_rank = <IN>;
-	close(IN);
-	foreach $buf(@i_rank){ utf8::decode($buf) };
+    if ( !$ck_cnt && $ex_in_nm ) {
 
-	foreach(@i_rank){
-	($ico,$ic_num) = split(/<>/,$_);
-	if($ico eq $icon1[$ic_nm]){++$ic_num;$_ = "$ico<>$ic_num<>\n";$ck_ico = 1;last;}
-	}
+        if ($fll) {
+            foreach ( 1 .. 10 ) {
+                unless ( -e $irklock ) { last; }
+                sleep(1);
+            }
+        }
 
-	if(!$ck_ico){$new_ic = "$icon1[$ic_nm]<>1<>\n";push(@i_rank,$new_ic);}
+        #open(IN,"$i_rank_log") || &error("Can't open $i_rank_log");
+        sysopen( IN, "$i_rank_log", O_RDONLY )
+            || &error("Can't open $i_rank_log");
+        @i_rank = <IN>;
+        close(IN);
+        foreach $buf (@i_rank) { utf8::decode($buf) }
 
-	if($fll){
-		&fll("$irklock","$i_rank_log",@i_rank);
-	}else{
-		#open(IN,">$i_rank_log") || &error("Can't open $i_rank_log");
-		sysopen(IN,"$i_rank_log" , O_WRONLY | O_TRUNC | O_CREAT ) || &error("Can't open $i_rank_log");
-		print IN @i_rank;
-		close(IN);
-	}
+        foreach (@i_rank) {
+            ( $ico, $ic_num ) = split( /<>/, $_ );
+            if ( $ico eq $icon1[$ic_nm] ) {
+                ++$ic_num;
+                $_      = "$ico<>$ic_num<>\n";
+                $ck_ico = 1;
+                last;
+            }
+        }
 
-	}
+        if ( !$ck_ico ) {
+            $new_ic = "$icon1[$ic_nm]<>1<>\n";
+            push( @i_rank, $new_ic );
+        }
 
+        if ($fll) {
+            &fll( "$irklock", "$i_rank_log", @i_rank );
+        }
+        else {
+            #open(IN,">$i_rank_log") || &error("Can't open $i_rank_log");
+            sysopen( IN, "$i_rank_log", O_WRONLY | O_TRUNC | O_CREAT )
+                || &error("Can't open $i_rank_log");
+            print IN @i_rank;
+            close(IN);
+        }
 
-	# 親記事NOを付加
-	unshift (@new,"$oya\n");
+    }
 
-	if($fll){
-		&fll("$lockfile","$logfile",@new);
-	}else{
-		#open(LOG, "+< $logfile") || &error("Can't open $logfile");
-		sysopen(LOG, "$logfile" , O_RDWR ) || &error("Can't open $logfile");
-		if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-		truncate(LOG, 0);
-		seek(LOG, 0, 0);
-		print LOG @new;
-		close(LOG);
+    # 親記事NOを付加
+    unshift( @new, "$oya\n" );
 
-	}
+    if ($fll) {
+        &fll( "$lockfile", "$logfile", @new );
+    }
+    else {
+        #open(LOG, "+< $logfile") || &error("Can't open $logfile");
+        sysopen( LOG, "$logfile", O_RDWR ) || &error("Can't open $logfile");
+        if ( $lockkey == 3 ) {
+            flock( LOG, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+        }
+        truncate( LOG, 0 );
+        seek( LOG, 0, 0 );
+        print LOG @new;
+        close(LOG);
 
+    }
 
+    if ( $in{'resno'} ) {
+        $top_page = "$script";
+    }
 
-if($in{'resno'}){
-	$top_page = "$script";
-}
+    #if ($ENV{PERLXS} eq "PerlIS") {
+    #print "HTTP/1.0 302 Temporary Redirection\r\n";
+    #print "Content-type: text/html\n\n";
+    #}
 
-#if ($ENV{PERLXS} eq "PerlIS") {
-#print "HTTP/1.0 302 Temporary Redirection\r\n";
-#print "Content-type: text/html\n\n";
-#}
-
-if(!$redi){
-	&set_cookie;
-	print "Location: $top_page\n";
-	print "\n";
-}else{
-	&set_cookie;
-	&header;
-	print "<META HTTP-EQUIV=\"Refresh\" Content=0\;url=$top_page>";
-	&footer;
-}
-exit;
+    if ( !$redi ) {
+        &set_cookie;
+        print "Location: $top_page\n";
+        print "\n";
+    }
+    else {
+        &set_cookie;
+        &header;
+        print "<META HTTP-EQUIV=\"Refresh\" Content=0\;url=$top_page>";
+        &footer;
+    }
+    exit;
 
 }
 
 ## --- 返信フォーム
 sub res_msg {
-	# ログを読み込み
-	#open(LOG,"$logfile") || &error("Can't open $logfile",'NOLOCK');
-	sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile",'NOLOCK');
-	@lines = <LOG>;
-	close(LOG);
-	foreach $buf(@lines){ utf8::decode($buf) };
 
-	# 親記事NOをカット
-	@lines = splice(@lines,1);
+    # ログを読み込み
+    #open(LOG,"$logfile") || &error("Can't open $logfile",'NOLOCK');
+    sysopen( LOG, "$logfile", O_RDONLY )
+        || &error( "Can't open $logfile", 'NOLOCK' );
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-	# フォーム長を定義
-	&get_agent;
+    # 親記事NOをカット
+    @lines = splice( @lines, 1 );
 
-	# クッキーを取得
-	&get_cookie;
+    # フォーム長を定義
+    &get_agent;
 
-	if($c_m_ex){$c_m_ex = " checked";}
+    # クッキーを取得
+    &get_cookie;
 
-	&header;
-	print "以下は、記事NO <B>$in{'resno'}</B> に関する返信フォームです<hr>\n";
-	print "<center><table border=0 width=\"97%\" cellpadding=10 bgcolor=\"$tbl_color\">\n";
-	print "<tr><td>\n";
+    if ($c_m_ex) { $c_m_ex = " checked"; }
 
-	$flag=0;
-	foreach $line (@lines) {
-		local($num,$k,$date,$name,$email,$sub,$com) = split(/<>/, $line);
+    &header;
+    print "以下は、記事NO <B>$in{'resno'}</B> に関する返信フォームです<hr>\n";
+    print
+        "<center><table border=0 width=\"97%\" cellpadding=10 bgcolor=\"$tbl_color\">\n";
+    print "<tr><td>\n";
 
-		# 親記事を出力
-		if ($k eq "" && $in{'resno'} eq "$num") {
-			$resub = $sub;
-			$flag=1;
-			print "<B>【親記事】</B><P>\n";
-			print "<font color=\"$sub_color\"><B>$sub</B></font>\n";
-			print "投稿者：<font color=\"$link\"><B>$name</B></font>\n";
-			print "<small>投稿日：$date</small><br>\n";
-			print "<blockquote>$com</blockquote><P>\n";
+    $flag = 0;
+    foreach $line (@lines) {
+        local ( $num, $k, $date, $name, $email, $sub, $com )
+            = split( /<>/, $line );
 
-		# レス記事を @res に格納
-		} elsif ($k ne "" && $in{'resno'} eq "$k") {
+        # 親記事を出力
+        if ( $k eq "" && $in{'resno'} eq "$num" ) {
+            $resub = $sub;
+            $flag  = 1;
+            print "<B>【親記事】</B><P>\n";
+            print "<font color=\"$sub_color\"><B>$sub</B></font>\n";
+            print "投稿者：<font color=\"$link\"><B>$name</B></font>\n";
+            print "<small>投稿日：$date</small><br>\n";
+            print "<blockquote>$com</blockquote><P>\n";
 
-			push(@res,$line);
-		}
-	}
+            # レス記事を @res に格納
+        }
+        elsif ( $k ne "" && $in{'resno'} eq "$k" ) {
 
-	# レス記事を表示
-	if (@res) {
-		# 記事を逆順に
-		@res = reverse(@res);
+            push( @res, $line );
+        }
+    }
 
-		$flag = 0;
-		foreach $line (@res) {
-			local($num,$k,$date,$name,$email,$sub,$com) = split(/<>/,$line);
+    # レス記事を表示
+    if (@res) {
 
-			if ($flag == 0) {
-				$flag=1;
-				print "<hr size=2><B>【レス記事】</B><br>\n";
-			}
+        # 記事を逆順に
+        @res = reverse(@res);
 
-			print "<blockquote><font color=\"$sub_color\"><B>$sub</B></font>\n";
-			print "投稿者：<font color=\"$link\"><B>$name</B></font> - \n";
-			print "<small>$date</small><br>\n";
-			print "<blockquote>$com</blockquote></blockquote><br>\n";
-		}
-	}
+        $flag = 0;
+        foreach $line (@res) {
+            local ( $num, $k, $date, $name, $email, $sub, $com )
+                = split( /<>/, $line );
 
-	# タイトル名
-	if ($resub !=~ /^Re\:/) { $resub = "Re\: $resub"; }
+            if ( $flag == 0 ) {
+                $flag = 1;
+                print "<hr size=2><B>【レス記事】</B><br>\n";
+            }
 
-    $max_dat=int($cgi_lib'maxdata/1024);
-     #'
-    $mx_ex="<span>　</span>jpg,gif,png $max_dat KBまで";
-	print <<"EOM";
+            print
+                "<blockquote><font color=\"$sub_color\"><B>$sub</B></font>\n";
+            print "投稿者：<font color=\"$link\"><B>$name</B></font> - \n";
+            print "<small>$date</small><br>\n";
+            print "<blockquote>$com</blockquote></blockquote><br>\n";
+        }
+    }
+
+    # タイトル名
+    if ( $resub != ~/^Re\:/ ) { $resub = "Re\: $resub"; }
+
+    $max_dat = int( $cgi_lib'maxdata / 1024 );
+
+    #'
+    $mx_ex = "<span>　</span>jpg,gif,png $max_dat KBまで";
+    print <<"EOM";
 </td></tr></table></center><hr>
 <form method="POST" action="$script" enctype=multipart/form-data>
 <input type=hidden name=mode value="msg">
@@ -1177,14 +1377,14 @@ sub res_msg {
 </tr>
 
 EOM
-if ($res_up) {
-    print "<tr><td nowrap><b>貼\り画像</b></td>\n";
-    print "  <td nowrap>\n";
-    print "  <input type=file name=upfile size=\"$nam_wid\">$mx_ex\n";
-    print "</td>\n";
-    print "</tr>\n";
-}
-print <<"EOM";
+    if ($res_up) {
+        print "<tr><td nowrap><b>貼\り画像</b></td>\n";
+        print "  <td nowrap>\n";
+        print "  <input type=file name=upfile size=\"$nam_wid\">$mx_ex\n";
+        print "</td>\n";
+        print "</tr>\n";
+    }
+    print <<"EOM";
 
 <tr>
   <td colspan=2><b>メッセージ</b><br>
@@ -1196,146 +1396,165 @@ print <<"EOM";
 </tr>
 EOM
 
-	if ($icon_mode) {
-		&icon_exe;
+    if ($icon_mode) {
+        &icon_exe;
 
-	# 管理者アイコンを配列に付加
-	if ($my_icon) {
-		push(@icon1,"$my_gif");
-		push(@icon2,"管理者用");
-	}
+        # 管理者アイコンを配列に付加
+        if ($my_icon) {
+            push( @icon1, "$my_gif" );
+            push( @icon2, "管理者用" );
+        }
 
-		print "<tr><td nowrap><b>イメージ</b></td><td><select name=icon>\n";
-		$inum = 0;
-		foreach(0 .. $#icon1) {
-			if($_ > 1){++$inum;}
-			if ($c_icon eq "$icon1[$_]") {
-				print "<option value=\"$icon1[$_]\" selected>$inum:$icon2[$_]\n";
-			} else {
-				print "<option value=\"$icon1[$_]\">$inum:$icon2[$_]\n";
-			}
-		}
-		print "</select> <small>(あなたの萌えレスイメージ ←謎)</small><INPUT TYPE='button' VALUE='この画像を見る' onClick='upWindow(icon.options[icon.selectedIndex].value); return true'><br>\n";
-	print "[<a href=\"$script?mode=image&bg_img=$in{'bg_img'}\" target='_blank'>画像イメージ参照−開けるな！キケン！（ｗ−[現在のアイコン数$Icon_num]</a>]</td></tr>\n";
-	}
+        print "<tr><td nowrap><b>イメージ</b></td><td><select name=icon>\n";
+        $inum = 0;
+        foreach ( 0 .. $#icon1 ) {
+            if ( $_ > 1 ) { ++$inum; }
+            if ( $c_icon eq "$icon1[$_]" ) {
+                print
+                    "<option value=\"$icon1[$_]\" selected>$inum:$icon2[$_]\n";
+            }
+            else {
+                print "<option value=\"$icon1[$_]\">$inum:$icon2[$_]\n";
+            }
+        }
+        print
+            "</select> <small>(あなたの萌えレスイメージ ←謎)</small><INPUT TYPE='button' VALUE='この画像を見る' onClick='upWindow(icon.options[icon.selectedIndex].value); return true'><br>\n";
+        print
+            "[<a href=\"$script?mode=image&bg_img=$in{'bg_img'}\" target='_blank'>画像イメージ参照−開けるな！キケン！（ｗ−[現在のアイコン数$Icon_num]</a>]</td></tr>\n";
+    }
 
-	print "<tr><td nowrap><b>削除キー</b>";
-	print "<td><input type=password name=pwd size=8 maxlength=8 value=\"$c_pwd\">\n";
-	print "<small>(自分の記事を削除時に使用。英数字で8文字以内)</small></td></tr>\n";
-	print "<tr><td colspan=2><b>※ 最初に投稿をしたときの削除キーと違うと投稿ができません</b></td></tr>";
-	print "<tr><td nowrap><b>文字色</b></td><td>\n";
+    print "<tr><td nowrap><b>削除キー</b>";
+    print
+        "<td><input type=password name=pwd size=8 maxlength=8 value=\"$c_pwd\">\n";
+    print "<small>(自分の記事を削除時に使用。英数字で8文字以内)</small></td></tr>\n";
+    print "<tr><td colspan=2><b>※ 最初に投稿をしたときの削除キーと違うと投稿ができません</b></td></tr>";
+    print "<tr><td nowrap><b>文字色</b></td><td>\n";
 
-	# クッキーの色情報がない場合
-	if ($c_color eq "") { $c_color = $COLORS[0]; }
+    # クッキーの色情報がない場合
+    if ( $c_color eq "" ) { $c_color = $COLORS[0]; }
 
-	foreach (0 .. $#COLORS) {
-		if ($c_color eq "$COLORS[$_]") {
-			print "<input type=radio name=color value=\"$COLORS[$_]\" checked>";
-			print "<font color=\"$COLORS[$_]\">■</font>\n";
+    foreach ( 0 .. $#COLORS ) {
+        if ( $c_color eq "$COLORS[$_]" ) {
+            print
+                "<input type=radio name=color value=\"$COLORS[$_]\" checked>";
+            print "<font color=\"$COLORS[$_]\">■</font>\n";
 
-		} else {
-			print "<input type=radio name=color value=\"$COLORS[$_]\">";
-			print "<font color=$COLORS[$_]>■</font>\n";
-		}
-	}
-	print "</td></tr>";
-	if($tg_mc){print "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";}
+        }
+        else {
+            print "<input type=radio name=color value=\"$COLORS[$_]\">";
+            print "<font color=$COLORS[$_]>■</font>\n";
+        }
+    }
+    print "</td></tr>";
+    if ($tg_mc) {
+        print
+            "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";
+    }
 
-	print "</td></tr></table></form>\n";
-	print "</blockquote><P><hr><P>\n";
-	&footer;
-	exit;
+    print "</td></tr></table></form>\n";
+    print "</blockquote><P><hr><P>\n";
+    &footer;
+    exit;
 }
 
 ## --- フォームからのデータ処理
 sub form_decode {
-	&ReadParse;
-	while (($name,$value) = each %in) {
+    &ReadParse;
+    while ( ( $name, $value ) = each %in ) {
 
-		if (($name ne "upfile") && ($name ne "upbgm") && ($name ne "upflash") && ($name ne "mail_file")) {
+        if (   ( $name ne "upfile" )
+            && ( $name ne "upbgm" )
+            && ( $name ne "upflash" )
+            && ( $name ne "mail_file" ) )
+        {
 
-		# 文字コードをEUC変換
-		#&jcode'convert(*value,'euc');
-		#Jcode::convert(*value,'euc');
-		utf8::decode($value);
+            # 文字コードをEUC変換
+            #&jcode'convert(*value,'euc');
+            #Jcode::convert(*value,'euc');
+            utf8::decode($value);
 
-		# 一括削除用
-		if($name eq 'del'){@delete=split(/\0/,$value);}
+            # 一括削除用
+            if ( $name eq 'del' ) { @delete = split( /\0/, $value ); }
 
-		# 投票用
-		if($name eq 'moe_vt'){@moe_vt=split(/\0/,$value);}
+            # 投票用
+            if ( $name eq 'moe_vt' ) { @moe_vt = split( /\0/, $value ); }
 
-		# メールフォーム用
-		if($name eq 'nums'){@nums =split(/\0/,$value);}
+            # メールフォーム用
+            if ( $name eq 'nums' ) { @nums = split( /\0/, $value ); }
 
-		# タグ処理
-		if ($tagkey == 0) {
-			#$value =~ s/&/&amp;/g;
-			$value =~ s/</&lt;/g;
-			$value =~ s/>/&gt;/g;
-			$value =~ s/\"/&quot;/g;
-		} else {
-			$value =~ s/<!--(.|\n)*-->//g;
-			$value =~ s/<>/&lt;&gt;/g;
-		}
+            # タグ処理
+            if ( $tagkey == 0 ) {
 
-		# 改行等処理
-		if($name eq "com"){
-		$s_in{com} = $value;
-		$s_in{com} =~ s/\n/<br>/g;
-		#&jcode'convert(*value,'sjis');
-		#Jcode::convert(*value,'sjis');
-		#&jcode'convert(*value,'jis');
-		#Jcode::convert(*value,'jis');
+                #$value =~ s/&/&amp;/g;
+                $value =~ s/</&lt;/g;
+                $value =~ s/>/&gt;/g;
+                $value =~ s/\"/&quot;/g;
+            }
+            else {
+                $value =~ s/<!--(.|\n)*-->//g;
+                $value =~ s/<>/&lt;&gt;/g;
+            }
 
-		} elsif ($name eq "comment") {
-			$value =~ s/\r\n/<br>/g;
-			$value =~ s/\r/<br>/g;
-			$value =~ s/\n/<br>/g;
-		} elsif ($name eq "up_comment") {
-			$value =~ s/\r\n/\r/g;
-			$value =~ s/[\r\n]/\r/g;
-		} else {
-			$value =~ s/\r//g;
-			$value =~ s/\n//g;
-		}
+            # 改行等処理
+            if ( $name eq "com" ) {
+                $s_in{com} = $value;
+                $s_in{com} =~ s/\n/<br>/g;
 
-	}
-		$in{$name} = $value;
-	}
+                #&jcode'convert(*value,'sjis');
+                #Jcode::convert(*value,'sjis');
+                #&jcode'convert(*value,'jis');
+                #Jcode::convert(*value,'jis');
 
-	$name    = $in{'name'};
-	$comment = $in{'comment'};
-	$email   = $in{'email'};
-	$url     = $in{'url'};
-	$url     =~ s/^http\:\/\///;
-	$mode    = $in{'mode'};
-	$sub     = $in{'sub'};
-	$len_ck="$name$comment$email$url$sub";
-	if(length($len_ck) > 2048){&error("投稿量が大きすぎます",'NOLOCK');}
-	if ($sub eq "") { $sub = "無題"; }
-	$pwd     = $in{'pwd'};
-	$pwd     =~ s/\r//g;
-	$pwd     =~ s/\n//g;
-	$icon    = $in{'icon'};
-	$color   = $in{'color'};
-	$up_check = $in{'up_check'};
-	$up_title = $in{'up_title'};
-    $up_limit = $in{'up_limit'};
-	$up_comment = $in{'up_comment'};
-	$DL_num = $in{'DL_num'};
-	$new_topic = $in{'new_topic'};
-	$bg_img=$in{'bg_img'};
+            }
+            elsif ( $name eq "comment" ) {
+                $value =~ s/\r\n/<br>/g;
+                $value =~ s/\r/<br>/g;
+                $value =~ s/\n/<br>/g;
+            }
+            elsif ( $name eq "up_comment" ) {
+                $value =~ s/\r\n/\r/g;
+                $value =~ s/[\r\n]/\r/g;
+            }
+            else {
+                $value =~ s/\r//g;
+                $value =~ s/\n//g;
+            }
 
+        }
+        $in{$name} = $value;
+    }
+
+    $name    = $in{'name'};
+    $comment = $in{'comment'};
+    $email   = $in{'email'};
+    $url     = $in{'url'};
+    $url =~ s/^http\:\/\///;
+    $mode   = $in{'mode'};
+    $sub    = $in{'sub'};
+    $len_ck = "$name$comment$email$url$sub";
+    if ( length($len_ck) > 2048 ) { &error( "投稿量が大きすぎます", 'NOLOCK' ); }
+    if ( $sub eq "" )             { $sub = "無題"; }
+    $pwd = $in{'pwd'};
+    $pwd =~ s/\r//g;
+    $pwd =~ s/\n//g;
+    $icon       = $in{'icon'};
+    $color      = $in{'color'};
+    $up_check   = $in{'up_check'};
+    $up_title   = $in{'up_title'};
+    $up_limit   = $in{'up_limit'};
+    $up_comment = $in{'up_comment'};
+    $DL_num     = $in{'DL_num'};
+    $new_topic  = $in{'new_topic'};
+    $bg_img     = $in{'bg_img'};
 
 }
 ## --- 掲示板の使い方メッセージ
 sub howto {
-	if ($tagkey == 0) { $tag_msg = "投稿内容には、<b>タグは一切使用できません。</b>\n"; }
-	else { $tag_msg = "コメント欄には、<b>タグ使用をすることができます。</b>\n"; }
+    if   ( $tagkey == 0 ) { $tag_msg = "投稿内容には、<b>タグは一切使用できません。</b>\n"; }
+    else                  { $tag_msg = "コメント欄には、<b>タグ使用をすることができます。</b>\n"; }
 
-	&header;
-	print <<"HTML";
+    &header;
+    print <<"HTML";
 [<a href="$script\?cnt=no">掲示板にもどる</a>]
 <table width="100%">
 <tr>
@@ -1364,14 +1583,14 @@ sub howto {
 <hr>
 <P>
 HTML
-	&footer;
-	exit;
+    &footer;
+    exit;
 }
 
 ## --- ワード検索サブルーチン
 sub find {
-	&header;
-	print <<"HTML";
+    &header;
+    print <<"HTML";
 [<a href="$script\?cnt=no">掲示板にもどる</a>]
 <table width="100%">
 <tr>
@@ -1411,445 +1630,510 @@ sub find {
 </table>
 </form></center>
 HTML
-	# ワード検索の実行と結果表示
-	if ($in{'word'} ne ""){
 
-		# 入力内容を整理
-		$cond = $in{'cond'};
-		$word = $in{'word'};
-		$word =~ s/　/ /g;
-		$word =~ s/\t/ /g;
-		@pairs = split(/ /,$word);
+    # ワード検索の実行と結果表示
+    if ( $in{'word'} ne "" ) {
 
-		# ファイルを読み込み
-		#open(LOG,"$logfile") || &error("Can't open $logfile",'NOLOCK');
-		sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile",'NOLOCK');
-		@lines = <LOG>;
-		close(LOG);
-		foreach $buf(@lines){ utf8::decode($buf) };
+        # 入力内容を整理
+        $cond = $in{'cond'};
+        $word = $in{'word'};
+        $word =~ s/　/ /g;
+        $word =~ s/\t/ /g;
+        @pairs = split( / /, $word );
 
-		# 検索処理
-		foreach (1 .. $#lines) {
-			$flag = 0;
-			foreach $pair (@pairs){
-				if (index($lines[$_],$pair) >= 0) {
-					$flag = 1;
-					if ($cond eq 'or') { last; }
-				} else {
-					if ($cond eq 'and') { $flag = 0; last; }
-				}
-			}
-			if ($flag == 1) { push(@new,$lines[$_]); }
-		}
+        # ファイルを読み込み
+        #open(LOG,"$logfile") || &error("Can't open $logfile",'NOLOCK');
+        sysopen( LOG, "$logfile", O_RDONLY )
+            || &error( "Can't open $logfile", 'NOLOCK' );
+        @lines = <LOG>;
+        close(LOG);
+        foreach $buf (@lines) { utf8::decode($buf) }
 
-		# 検索終了
-		$count = @new;
-		print "<hr><b><font color=\"$t_color\">検索結果：$count件</font></b><P>\n";
-		print "<OL>\n";
+        # 検索処理
+        foreach ( 1 .. $#lines ) {
+            $flag = 0;
+            foreach $pair (@pairs) {
+                if ( index( $lines[$_], $pair ) >= 0 ) {
+                    $flag = 1;
+                    if ( $cond eq 'or' ) { last; }
+                }
+                else {
+                    if ( $cond eq 'and' ) { $flag = 0; last; }
+                }
+            }
+            if ( $flag == 1 ) { push( @new, $lines[$_] ); }
+        }
 
-		foreach $line (@new) {
-			($num,$k,$date,$name,$email,$sub,$com,$url) = split(/<>/,$line);
+        # 検索終了
+        $count = @new;
+        print "<hr><b><font color=\"$t_color\">検索結果：$count件</font></b><P>\n";
+        print "<OL>\n";
 
-			($email,$m_ex) = split(/>/,$email);
+        foreach $line (@new) {
+            ( $num, $k, $date, $name, $email, $sub, $com, $url )
+                = split( /<>/, $line );
 
-			if ($email && $m_ex) { $name = "<a href=\"mailto:$email\">$name</a>"; }	
-			if ($url) { $url = "[<a href=\"http://$url\" target='_top'>HOME</a>]"; }
+            ( $email, $m_ex ) = split( />/, $email );
 
-			if ($k) { $num = "$kへのレス"; }
+            if ( $email && $m_ex ) {
+                $name = "<a href=\"mailto:$email\">$name</a>";
+            }
+            if ($url) {
+                $url = "[<a href=\"http://$url\" target='_top'>HOME</a>]";
+            }
 
-			# 結果を表示
-			print "<LI>[$num] <font color=\"$sub_color\"><b>$sub</b></font>\n";
-			print "投稿者：<b>$name</b> <small> $url 投稿日：$date</small>\n";
-			print "<P><blockquote>$com</blockquote><hr>\n";
-		}
+            if ($k) { $num = "$kへのレス"; }
 
-		print "</OL><P>\n";
-	}
+            # 結果を表示
+            print
+                "<LI>[$num] <font color=\"$sub_color\"><b>$sub</b></font>\n";
+            print "投稿者：<b>$name</b> <small> $url 投稿日：$date</small>\n";
+            print "<P><blockquote>$com</blockquote><hr>\n";
+        }
 
-	&footer;
-	exit;
+        print "</OL><P>\n";
+    }
+
+    &footer;
+    exit;
 }
 
 ## --- ブラウザを判断しフォーム幅を調整
 sub get_agent {
-	# ブラウザ名を取得
-	$agent = $ENV{'HTTP_USER_AGENT'};
 
-	if ($agent =~ /MSIE 3/i) { 
-		$nam_wid  = 30;
-		$subj_wid = 40;
-		$com_wid  = 65;
-		$url_wid  = 48;
-		$nam_wid2 = 20;
-	}
-	elsif ($agent =~ /MSIE 4/i || $agent =~ /MSIE 5/i) { 
-		$nam_wid  = 30;
-		$subj_wid = 40;
-		$com_wid  = 65;
-		$url_wid  = 78;
-		$nam_wid2 = 20;
-	}
-	else {
-		$nam_wid  = 20;
-		$subj_wid = 25;
-		$com_wid  = 56;
-		$url_wid  = 50;
-		$nam_wid2 = 10;
-	}
+    # ブラウザ名を取得
+    $agent = $ENV{'HTTP_USER_AGENT'};
+
+    if ( $agent =~ /MSIE 3/i ) {
+        $nam_wid  = 30;
+        $subj_wid = 40;
+        $com_wid  = 65;
+        $url_wid  = 48;
+        $nam_wid2 = 20;
+    }
+    elsif ( $agent =~ /MSIE 4/i || $agent =~ /MSIE 5/i ) {
+        $nam_wid  = 30;
+        $subj_wid = 40;
+        $com_wid  = 65;
+        $url_wid  = 78;
+        $nam_wid2 = 20;
+    }
+    else {
+        $nam_wid  = 20;
+        $subj_wid = 25;
+        $com_wid  = 56;
+        $url_wid  = 50;
+        $nam_wid2 = 10;
+    }
 }
 
 ## --- クッキーの発行
 sub set_cookie {
-	# クッキーは60日間有効
-	($secg,$ming,$hourg,$mdayg,$mong,$yearg,$wdayg,$dmy,$dmy)
-					 	= gmtime(time + 60*24*60*60);
-	$yearg += 1900;
-	if ($secg  < 10) { $secg  = "0$secg";  }
-	if ($ming  < 10) { $ming  = "0$ming";  }
-	if ($hourg < 10) { $hourg = "0$hourg"; }
-	if ($mdayg < 10) { $mdayg = "0$mdayg"; }
 
-	$month = ('Jan','Feb','Mar','Apr','May','Jun','Jul',
-				'Aug','Sep','Oct','Nov','Dec')[$mong];
-	$youbi = ('Sunday','Monday','Tuesday','Wednesday',
-				'Thursday','Friday','Saturday')[$wdayg];
+    # クッキーは60日間有効
+    ( $secg, $ming, $hourg, $mdayg, $mong, $yearg, $wdayg, $dmy, $dmy )
+        = gmtime( time + 60 * 24 * 60 * 60 );
+    $yearg += 1900;
+    if ( $secg < 10 )  { $secg  = "0$secg"; }
+    if ( $ming < 10 )  { $ming  = "0$ming"; }
+    if ( $hourg < 10 ) { $hourg = "0$hourg"; }
+    if ( $mdayg < 10 ) { $mdayg = "0$mdayg"; }
 
-	$date_gmt = "$youbi, $mdayg\-$month\-$yearg $hourg:$ming:$secg GMT";
-	if(!$cook){
-		$cook="name\:$name\,email\:$email\,url\:$url\,pwd\:$pwd\,icon\:$icon\,color\:$color\,mail_ex\:$in{mail_ex}";
-	}
-		#&jcode'convert(*cook,'sjis');
-	        #Jcode::convert(*cook,'sjis');
-                 
-	print "Set-Cookie: $COOKIE_name=$cook; expires=$date_gmt\n";
+    $month = (
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    )[$mong];
+    $youbi = (
+        'Sunday',   'Monday', 'Tuesday', 'Wednesday',
+        'Thursday', 'Friday', 'Saturday'
+    )[$wdayg];
+
+    $date_gmt = "$youbi, $mdayg\-$month\-$yearg $hourg:$ming:$secg GMT";
+    if ( !$cook ) {
+        $cook
+            = "name\:$name\,email\:$email\,url\:$url\,pwd\:$pwd\,icon\:$icon\,color\:$color\,mail_ex\:$in{mail_ex}";
+    }
+
+    #&jcode'convert(*cook,'sjis');
+    #Jcode::convert(*cook,'sjis');
+
+    print "Set-Cookie: $COOKIE_name=$cook; expires=$date_gmt\n";
 }
 
 ## --- クッキーを取得
-sub get_cookie { 
-	@pairs = split(/\;/, $ENV{'HTTP_COOKIE'});
-	foreach $pair (@pairs) {
-		local($name, $value) = split(/\=/, $pair);
-		$name =~ s/ //g;
-		$DUMMY{$name} = $value;
-	}
-	@pairs = split(/\,/, $DUMMY{"$COOKIE_name"});
-	foreach $pair (@pairs) {
-		local($name, $value) = split(/\:/, $pair);
+sub get_cookie {
+    @pairs = split( /\;/, $ENV{'HTTP_COOKIE'} );
+    foreach $pair (@pairs) {
+        local ( $name, $value ) = split( /\=/, $pair );
+        $name =~ s/ //g;
+        $DUMMY{$name} = $value;
+    }
+    @pairs = split( /\,/, $DUMMY{"$COOKIE_name"} );
+    foreach $pair (@pairs) {
+        local ( $name, $value ) = split( /\:/, $pair );
 
-		# 文字コードをEUC変換 #
-		#&jcode'convert(*value,'euc');
-                #Jcode::convert(*value,'euc');
-		utf8::decode($value);
-		
-		$COOKIE{$name} = $value;
-	}
-	$c_name  = $COOKIE{'name'};
-	$c_email = $COOKIE{'email'};
-	$c_url   = $COOKIE{'url'};
-	$c_pwd   = $COOKIE{'pwd'};
-	$c_icon  = $COOKIE{'icon'};
-	$c_color = $COOKIE{'color'};
-	$c_m_ex = $COOKIE{'mail_ex'};
+        # 文字コードをEUC変換 #
+        #&jcode'convert(*value,'euc');
+        #Jcode::convert(*value,'euc');
+        utf8::decode($value);
 
-	if(!$tr_ck){
-		if ($in{'name'})  { $c_name  = $in{'name'}; }
-		if ($in{'email'}) { $c_email = $in{'email'}; }
-		if ($in{'url'})   { $c_url   = $url; }
-		if ($in{'pwd'})   { $c_pwd   = $in{'pwd'}; }
-		if ($in{'icon'})  { $c_icon  = $in{'icon'}; }
-		if ($in{'color'}) { $c_color = $in{'color'}; }
-	}
+        $COOKIE{$name} = $value;
+    }
+    $c_name  = $COOKIE{'name'};
+    $c_email = $COOKIE{'email'};
+    $c_url   = $COOKIE{'url'};
+    $c_pwd   = $COOKIE{'pwd'};
+    $c_icon  = $COOKIE{'icon'};
+    $c_color = $COOKIE{'color'};
+    $c_m_ex  = $COOKIE{'mail_ex'};
+
+    if ( !$tr_ck ) {
+        if ( $in{'name'} )  { $c_name  = $in{'name'}; }
+        if ( $in{'email'} ) { $c_email = $in{'email'}; }
+        if ( $in{'url'} )   { $c_url   = $url; }
+        if ( $in{'pwd'} )   { $c_pwd   = $in{'pwd'}; }
+        if ( $in{'icon'} )  { $c_icon  = $in{'icon'}; }
+        if ( $in{'color'} ) { $c_color = $in{'color'}; }
+    }
 }
 
 ## --- エラー処理
 sub error {
-	if ($_[1] ne '0') { &header; }
+    if ( $_[1] ne '0' ) { &header; }
 
-	if (-e $lockfile && $_[1] eq "") { unlink($lockfile); }
+    if ( -e $lockfile && $_[1] eq "" ) { unlink($lockfile); }
 
-	print "<center><hr width=\"75%\"><h3>ERROR !</h3>\n";
-	print "<P><font color=red><B>$_[0] $_[1] $_[2]</B></font>\n";
-	print "<P><hr width=\"75%\"></center>\n";
-	&footer;
-	exit;
+    print "<center><hr width=\"75%\"><h3>ERROR !</h3>\n";
+    print "<P><font color=red><B>$_[0] $_[1] $_[2]</B></font>\n";
+    print "<P><hr width=\"75%\"></center>\n";
+    &footer;
+    exit;
 }
 
 ## --- 削除画面
 sub msg_del {
-	if ($in{'action'} eq 'admin' && (crypt($in{'pass'}, substr($password, $salt, 2) ) ne $password)) {
-		&error("パスワードが違います",'NOLOCK');
-	}
+    if ($in{'action'} eq 'admin'
+        && (
+            crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password )
+        )
+    {
+        &error( "パスワードが違います", 'NOLOCK' );
+    }
 
-	#open(LOG,$logfile) || &error("Can't open $logfile",'NOLOCK');
-	sysopen(LOG,$logfile,O_RDONLY) || &error("Can't open $logfile",'NOLOCK');
-	@lines = <LOG>;
-	close(LOG);
-	foreach $buf(@lines){ utf8::decode($buf) };
+    #open(LOG,$logfile) || &error("Can't open $logfile",'NOLOCK');
+    sysopen( LOG, $logfile, O_RDONLY )
+        || &error( "Can't open $logfile", 'NOLOCK' );
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-	shift(@lines);
+    shift(@lines);
 
-	# 親記事のみの配列データを作成
-	@NEW = ();
-	foreach (@lines) {
-		($number,$k,$date,$name,$email,$subj,
-			$comment,$url,$host,$pwd) = split(/<>/, $_);
+    # 親記事のみの配列データを作成
+    @NEW = ();
+    foreach (@lines) {
+        (   $number, $k,       $date, $name, $email,
+            $subj,   $comment, $url,  $host, $pwd
+        ) = split( /<>/, $_ );
 
-		# レス記事を外す
-		if ($k eq '') { push(@NEW,$_); }
-	}
+        # レス記事を外す
+        if ( $k eq '' ) { push( @NEW, $_ ); }
+    }
 
-	@lines = reverse(@lines);
+    @lines = reverse(@lines);
 
-	&header;
-	print "[<a href=\"$script\?cnt=no\">掲示板へ戻る</a>]\n";
-	print "<table width=\"100%\"><tr><th bgcolor=\"#0000A0\">\n";
-	print "<font color=\"#FFFFFF\">コメント削除画面</font></th>\n";
-	print "</tr></table><P><center>\n";
-	print "<table border=0 cellpadding=5><tr>\n";
-	print "<td bgcolor=$tbl_color>\n";
+    &header;
+    print "[<a href=\"$script\?cnt=no\">掲示板へ戻る</a>]\n";
+    print "<table width=\"100%\"><tr><th bgcolor=\"#0000A0\">\n";
+    print "<font color=\"#FFFFFF\">コメント削除画面</font></th>\n";
+    print "</tr></table><P><center>\n";
+    print "<table border=0 cellpadding=5><tr>\n";
+    print "<td bgcolor=$tbl_color>\n";
 
-	if ($in{'action'} eq '') {
-		print "■投稿時に記入した「削除キー」により、記事を削除します。<br>\n";
-	}
+    if ( $in{'action'} eq '' ) {
+        print "■投稿時に記入した「削除キー」により、記事を削除します。<br>\n";
+    }
 
-	print "■削除したい記事のチェックボックスにチェックを入れ、下記フォームに「削除キー」を入力してください。<br>\n";
-	print "■親記事を削除する場合、そのレスメッセージも同時に消滅してしまうことになりますので、ご注意ください。<br>\n";
-	print "</td></tr></table><P>\n";
-	print "<form action=\"$script\" method=$method>\n";
+    print "■削除したい記事のチェックボックスにチェックを入れ、下記フォームに「削除キー」を入力してください。<br>\n";
+    print "■親記事を削除する場合、そのレスメッセージも同時に消滅してしまうことになりますので、ご注意ください。<br>\n";
+    print "</td></tr></table><P>\n";
+    print "<form action=\"$script\" method=$method>\n";
 
-	if ($in{'action'} eq '') {
-	&get_cookie;
-		print "<input type=hidden name=mode value=\"usr_del\">\n";
-		print "<b>削除キー</b> <input type=password name=del_key size=10 value=$c_pwd>\n";
-	} else {
-		print "<input type=hidden name=mode value=\"admin_del\">\n";
-		print "<input type=hidden name=action value=\"admin\">\n";
-		print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
-	}
-	print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
-	print "<input type=submit value=\"削除する\"><input type=reset value=\"リセット\">\n";
-	print "<P><table border=1>\n";
-	print "<tr><th>削除</th><th>記事No</th><th>題名</th><th>投稿者</th><th>投稿日</th><th>コメント</th>\n";
+    if ( $in{'action'} eq '' ) {
+        &get_cookie;
+        print "<input type=hidden name=mode value=\"usr_del\">\n";
+        print
+            "<b>削除キー</b> <input type=password name=del_key size=10 value=$c_pwd>\n";
+    }
+    else {
+        print "<input type=hidden name=mode value=\"admin_del\">\n";
+        print "<input type=hidden name=action value=\"admin\">\n";
+        print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
+    }
+    print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
+    print
+        "<input type=submit value=\"削除する\"><input type=reset value=\"リセット\">\n";
+    print "<P><table border=1>\n";
+    print
+        "<tr><th>削除</th><th>記事No</th><th>題名</th><th>投稿者</th><th>投稿日</th><th>コメント</th>\n";
 
-	if ($in{'action'} eq 'admin') { print "<th>ホスト名</th>\n"; }
+    if ( $in{'action'} eq 'admin' ) { print "<th>ホスト名</th>\n"; }
 
-	print "</tr>\n";
+    print "</tr>\n";
 
-	if ($in{'page'} eq '') { $page = 0; }
-	else { $page = $in{'page'}; }
+    if   ( $in{'page'} eq '' ) { $page = 0; }
+    else                       { $page = $in{'page'}; }
 
-	# 記事数を取得
-	$end_data = @NEW - 1;
-	$page_end = $page + ($pagelog - 1);
+    # 記事数を取得
+    $end_data = @NEW - 1;
+    $page_end = $page + ( $pagelog - 1 );
 
-	if ($page_end >= $end_data) { $page_end = $end_data; }
-	foreach ($page .. $page_end) {
-		($num,$k,$date,$name,$email,$sub,
-			$com,$url,$host,$pw,$color) = split(/<>/,$NEW[$_]);
+    if ( $page_end >= $end_data ) { $page_end = $end_data; }
+    foreach ( $page .. $page_end ) {
+        (   $num, $k,   $date, $name, $email, $sub,
+            $com, $url, $host, $pw,   $color
+        ) = split( /<>/, $NEW[$_] );
 
-		($email,$mail_ex) = split(/>/,$email);
-		if ($email && $mail_ex) { $name="<a href=mailto:$email>$name</a>"; }
-		$com =~ s/<br>/ /g;
-		if ($tagkey || $tg_mc) { $com =~ s/</&lt;/g; $com =~ s/>/&gt;/g; }
+        ( $email, $mail_ex ) = split( />/, $email );
+        if ( $email && $mail_ex ) {
+            $name = "<a href=mailto:$email>$name</a>";
+        }
+        $com =~ s/<br>/ /g;
+        if ( $tagkey || $tg_mc ) { $com =~ s/</&lt;/g; $com =~ s/>/&gt;/g; }
 
-		if (length($com) > 60) { $com = substr($com,0,58); $com = $com . '..'; }
+        if ( length($com) > 60 ) {
+            $com = substr( $com, 0, 58 );
+            $com = $com . '..';
+        }
 
-		if ($in{'action'} eq 'admin') {
-			print "<tr><th><input type=checkbox name=del value=\"$date\"></th>\n";
+        if ( $in{'action'} eq 'admin' ) {
+            print
+                "<tr><th><input type=checkbox name=del value=\"$date\"></th>\n";
 
-		} else {
-			print "<tr><th><input type=radio name=del value=\"$date\"></th>\n";
-		}
+        }
+        else {
+            print
+                "<tr><th><input type=radio name=del value=\"$date\"></th>\n";
+        }
 
-		print "<th>$num</th><td>$sub</td><td>$name</td>\n";
-		print "<td><small>$date</small></td><td>$com</td>\n";
+        print "<th>$num</th><td>$sub</td><td>$name</td>\n";
+        print "<td><small>$date</small></td><td>$com</td>\n";
 
-		if ($in{'action'} eq 'admin') { print "<td>$host</td>\n"; }
+        if ( $in{'action'} eq 'admin' ) { print "<td>$host</td>\n"; }
 
-		print "</tr>\n";
+        print "</tr>\n";
 
-		## レスメッセージを表示
-		foreach (0 .. $#lines) {
-			($rnum,$rk,$rd,$rname,$rem,$rsub,
-				$rcom,$rurl,$rho,$rp,$rc) = split(/<>/, $lines[$_]);
+        ## レスメッセージを表示
+        foreach ( 0 .. $#lines ) {
+            (   $rnum, $rk,   $rd,  $rname, $rem, $rsub,
+                $rcom, $rurl, $rho, $rp,    $rc
+            ) = split( /<>/, $lines[$_] );
 
-			$rcom =~ s/<br>/ /g;
-			if ($tagkey || $tg_mc) { $rcom =~ s/</\&lt\;/g; $rcom =~ s/>/\&gt\;/g; }
-			if (length($rcom) > 60) { $rcom=substr($rcom,0,58); $rcom=$rcom . '..'; }
-			if ($num eq "$rk") {
+            $rcom =~ s/<br>/ /g;
+            if ( $tagkey || $tg_mc ) {
+                $rcom =~ s/</\&lt\;/g;
+                $rcom =~ s/>/\&gt\;/g;
+            }
+            if ( length($rcom) > 60 ) {
+                $rcom = substr( $rcom, 0, 58 );
+                $rcom = $rcom . '..';
+            }
+            if ( $num eq "$rk" ) {
 
-				if ($in{'action'} eq 'admin') {
-					print "<tr><th><input type=checkbox name=del value=\"$rd\"></th>\n";
-				} else {
-					print "<tr><th><input type=radio name=del value=\"$rd\"></th>\n";
-				}
+                if ( $in{'action'} eq 'admin' ) {
+                    print
+                        "<tr><th><input type=checkbox name=del value=\"$rd\"></th>\n";
+                }
+                else {
+                    print
+                        "<tr><th><input type=radio name=del value=\"$rd\"></th>\n";
+                }
 
-				print "<td colspan=2 align=center><b>$num</b>へのレス</td>\n";
+                print "<td colspan=2 align=center><b>$num</b>へのレス</td>\n";
 
-				($rem,$mail_ex) = split(/>/,$rem);
-				if ($rem && $mail_ex) { $rname="<a href=mailto:$rem>$rname</a>"; }
+                ( $rem, $mail_ex ) = split( />/, $rem );
+                if ( $rem && $mail_ex ) {
+                    $rname = "<a href=mailto:$rem>$rname</a>";
+                }
 
-				print "<td>$rname</td><td><small>$rd</small></td><td>$rcom</td>\n";
+                print
+                    "<td>$rname</td><td><small>$rd</small></td><td>$rcom</td>\n";
 
-				if ($in{'action'} eq 'admin') { print "<td>$rho</td>\n"; }
+                if ( $in{'action'} eq 'admin' ) { print "<td>$rho</td>\n"; }
 
-				print "</tr>\n";
-			}
-		}
-	}
-	print "</table></form>\n";
-	print "<table border=0 width=\"100%\"><tr>\n";
+                print "</tr>\n";
+            }
+        }
+    }
+    print "</table></form>\n";
+    print "<table border=0 width=\"100%\"><tr>\n";
 
-	# 改頁処理
-	$next_line = $page_end + 1;
-	$back_line = $page - $pagelog;
+    # 改頁処理
+    $next_line = $page_end + 1;
+    $back_line = $page - $pagelog;
 
-	# 前頁処理
-	if ($back_line >= 0) {
-	  print "<td><form method=\"$method\" action=\"$script\">\n";
-	  print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
-	  print "<input type=hidden name=cnt value=no>\n";
-	  print "<input type=hidden name=page value=\"$back_line\">\n";
-	  print "<input type=hidden name=mode value=msg_del>\n";
-	  print "<input type=submit value=\"前の親記事 $pagelog 件\">\n";
+    # 前頁処理
+    if ( $back_line >= 0 ) {
+        print "<td><form method=\"$method\" action=\"$script\">\n";
+        print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
+        print "<input type=hidden name=cnt value=no>\n";
+        print "<input type=hidden name=page value=\"$back_line\">\n";
+        print "<input type=hidden name=mode value=msg_del>\n";
+        print "<input type=submit value=\"前の親記事 $pagelog 件\">\n";
 
-	  if ($in{'action'} eq 'admin') {
-		print "<input type=hidden name=action value=\"admin\">\n";
-		print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
-	  }
+        if ( $in{'action'} eq 'admin' ) {
+            print "<input type=hidden name=action value=\"admin\">\n";
+            print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
+        }
 
-	  print "</form></td>\n";
-	}
+        print "</form></td>\n";
+    }
 
-	# 次頁処理
-	if ($page_end ne "$end_data") {
-	  print "<td><form method=\"$method\" action=\"$script\">\n";
-	  print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
-	  print "<input type=hidden name=cnt value=no>\n";
-	  print "<input type=hidden name=page value=\"$next_line\">\n";
-	  print "<input type=hidden name=mode value=msg_del>\n";
-	  print "<input type=submit value=\"次の親記事 $pagelog 件\">\n";
+    # 次頁処理
+    if ( $page_end ne "$end_data" ) {
+        print "<td><form method=\"$method\" action=\"$script\">\n";
+        print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
+        print "<input type=hidden name=cnt value=no>\n";
+        print "<input type=hidden name=page value=\"$next_line\">\n";
+        print "<input type=hidden name=mode value=msg_del>\n";
+        print "<input type=submit value=\"次の親記事 $pagelog 件\">\n";
 
-	  if ($in{'action'} eq 'admin') {
-		print "<input type=hidden name=action value=\"admin\">\n";
-		print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
-	  }
+        if ( $in{'action'} eq 'admin' ) {
+            print "<input type=hidden name=action value=\"admin\">\n";
+            print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
+        }
 
-	  print "</form></td>\n";
-	}
+        print "</form></td>\n";
+    }
 
-	print "</tr></table><P><hr><P>\n";
-	&footer;
-	exit;
+    print "</tr></table><P><hr><P>\n";
+    &footer;
+    exit;
 }
 
 ## --- rank編集画面
 sub rank_rest {
-	if (crypt($in{'pass'}, substr($password, $salt, 2) ) ne $password) {
-		&error("パスワードが違います",'NOLOCK');
-	}
+    if ( crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password ) {
+        &error( "パスワードが違います", 'NOLOCK' );
+    }
 
-if($fll){
-	foreach (1 .. 10) {
-		unless (-e $rklock) {last;}
-		sleep(1);
-	}
-}
-#open (RL,"$rank_log") || &error("Can't open $rank_log");
-sysopen(RL,"$rank_log",O_RDONLY) || &error("Can't open $rank_log");
-if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-@hd_rank = <RL>;
-close(RL);
-foreach $buf(@hd_rank){ utf8::decode($buf) };
+    if ($fll) {
+        foreach ( 1 .. 10 ) {
+            unless ( -e $rklock ) { last; }
+            sleep(1);
+        }
+    }
 
-if($in{rw}){
+    #open (RL,"$rank_log") || &error("Can't open $rank_log");
+    sysopen( RL, "$rank_log", O_RDONLY ) || &error("Can't open $rank_log");
+    if ( $lockkey == 3 ) { flock( RL, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗"); }
+    @hd_rank = <RL>;
+    close(RL);
+    foreach $buf (@hd_rank) { utf8::decode($buf) }
 
-$in{rw_name} =~ s/＠.*//;
-$in{rw_name} =~ s/☆.*//;
-$in{rw_name} =~ s/@.*//;
-$in{rw_name} =~ s/★.*//;
-$db_ck =0;
+    if ( $in{rw} ) {
 
-foreach(@hd_rank){
-($r_nm,$d2,$d3,$d4,$d5,$d6,$r_pwd,$lt_ac) = split(/<>/,$_);
+        $in{rw_name} =~ s/＠.*//;
+        $in{rw_name} =~ s/☆.*//;
+        $in{rw_name} =~ s/@.*//;
+        $in{rw_name} =~ s/★.*//;
+        $db_ck = 0;
 
-if($in{bs_name} eq $r_nm){
-$_ =~ s/\n//;
-	if($in{rw_rps} eq "rs"){$r_pwd = "";}
-	elsif($in{rw_rps} eq "ch"){
-	if(!$in{rw_ps}){&error("パスワードが設定されていません",'NOLOCK');}
-	&passwd_encode($in{rw_ps});
-	$r_pwd = $ango;
-	}
-$all_cnt = $in{rw_pic}+$in{rw_bgm};
-$_ = "$in{rw_name}<>$all_cnt<>$in{rw_pic}<>$in{rw_bgm}<>$in{rw_flash}<>$in{rw_res}<>$r_pwd<>$lt_ac<>$in{rw_rest}<>$in{rw_mcr}<>\n";
-}
+        foreach (@hd_rank) {
+            ( $r_nm, $d2, $d3, $d4, $d5, $d6, $r_pwd, $lt_ac )
+                = split( /<>/, $_ );
 
-}
+            if ( $in{bs_name} eq $r_nm ) {
+                $_ =~ s/\n//;
+                if    ( $in{rw_rps} eq "rs" ) { $r_pwd = ""; }
+                elsif ( $in{rw_rps} eq "ch" ) {
+                    if ( !$in{rw_ps} ) {
+                        &error( "パスワードが設定されていません", 'NOLOCK' );
+                    }
+                    &passwd_encode( $in{rw_ps} );
+                    $r_pwd = $ango;
+                }
+                $all_cnt = $in{rw_pic} + $in{rw_bgm};
+                $_
+                    = "$in{rw_name}<>$all_cnt<>$in{rw_pic}<>$in{rw_bgm}<>$in{rw_flash}<>$in{rw_res}<>$r_pwd<>$lt_ac<>$in{rw_rest}<>$in{rw_mcr}<>\n";
+            }
 
-foreach(@hd_rank){
-($nm) = split(/<>/,$_);
-if($in{rw_name} eq $nm){++$db_ck;}
-}
+        }
 
-if($db_ck > 1){&error("そのお名前は既に登録済みです",'NOLOCK');}
+        foreach (@hd_rank) {
+            ($nm) = split( /<>/, $_ );
+            if ( $in{rw_name} eq $nm ) { ++$db_ck; }
+        }
 
-}
+        if ( $db_ck > 1 ) { &error( "そのお名前は既に登録済みです", 'NOLOCK' ); }
 
-if(@delete){
+    }
 
-$del_num = @delete;
+    if (@delete) {
 
-foreach(@hd_rank){
-if(!$del_num){last;}else{$del_ck = 0;}
-($dnm) = split(/<>/,$_);
-foreach $del_name(@delete){if($del_name eq $dnm){$del_ck =1;}}
-if($del_ck){$_ = "";--$del_num;}
-}
+        $del_num = @delete;
 
-}
+        foreach (@hd_rank) {
+            if   ( !$del_num ) { last; }
+            else               { $del_ck = 0; }
+            ($dnm) = split( /<>/, $_ );
+            foreach $del_name (@delete) {
+                if ( $del_name eq $dnm ) { $del_ck = 1; }
+            }
+            if ($del_ck) { $_ = ""; --$del_num; }
+        }
 
-if($in{mon_del}){
-	&get_time;
-	foreach(@hd_rank){
-		$_ =~ s/\n//;
-		($r_nm,$d2,$d3,$d4,$d5,$d6,$r_pwd,$lt_ac) = split(/<>/,$_);
-		$sub = $mon - $lt_ac;
-		if($sub < 0){$sub = $mon +12 - $lt_ac;}
-		if($sub > 1 || !$lt_ac){$_ = "";}else{$_ = "$_\n";}
-	}
+    }
 
-}
+    if ( $in{mon_del} ) {
+        &get_time;
+        foreach (@hd_rank) {
+            $_ =~ s/\n//;
+            ( $r_nm, $d2, $d3, $d4, $d5, $d6, $r_pwd, $lt_ac )
+                = split( /<>/, $_ );
+            $sub = $mon - $lt_ac;
+            if   ( $sub < 0 )            { $sub = $mon + 12 - $lt_ac; }
+            if   ( $sub > 1 || !$lt_ac ) { $_   = ""; }
+            else                         { $_   = "$_\n"; }
+        }
 
-if(@delete || $in{rw} || $in{mon_del}){
+    }
 
-if($fll){
-	&fll("$rklock","$rank_log",@hd_rank);
-}else{
-	#open(RL, "+< $rank_log") || &error("Can't open $rank_log");
-	sysopen(RL, "$rank_log",O_RDWR) || &error("Can't open $rank_log");
-	if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-	truncate(RL, 0);
-	seek(RL, 0, 0);
-	print RL @hd_rank;
-	close(RL);
-}
-}
+    if ( @delete || $in{rw} || $in{mon_del} ) {
 
-if($name){
+        if ($fll) {
+            &fll( "$rklock", "$rank_log", @hd_rank );
+        }
+        else {
+            #open(RL, "+< $rank_log") || &error("Can't open $rank_log");
+            sysopen( RL, "$rank_log", O_RDWR )
+                || &error("Can't open $rank_log");
+            if ( $lockkey == 3 ) {
+                flock( RL, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+            }
+            truncate( RL, 0 );
+            seek( RL, 0, 0 );
+            print RL @hd_rank;
+            close(RL);
+        }
+    }
 
-foreach(@hd_rank){
-($rw_nm,$rw_cnt,$rw_pic,$rw_bgm,$rw_flash,$rw_res,$rw_rps,$la,$rw_rest,$rw_mcr) = split(/<>/,$_);
-if($name eq $rw_nm){last;}
-}
-if($pass_mode){
-$pmex = "pass認証兼";
-$pmex2 = <<"EOM";
+    if ($name) {
+
+        foreach (@hd_rank) {
+            (   $rw_nm,  $rw_cnt, $rw_pic, $rw_bgm,  $rw_flash,
+                $rw_res, $rw_rps, $la,     $rw_rest, $rw_mcr
+            ) = split( /<>/, $_ );
+            if ( $name eq $rw_nm ) { last; }
+        }
+        if ($pass_mode) {
+            $pmex  = "pass認証兼";
+            $pmex2 = <<"EOM";
 <li>認証でリセットを選択すると認証passがリセットされて、対象者の次の書きこみ時のpassが新たな認証passになります。<br>
 <li>認証で変更を選択、新パスワードを入力すると新しい認証passが設定されます。
 EOM
-$pmex3 = "<th>認証pass</th>";
-$pmex4 = <<"EOM";
+            $pmex3 = "<th>認証pass</th>";
+            $pmex4 = <<"EOM";
 <td>
 <input type=radio name=rw_rps value=\"\" checked> 変更しない
 　
@@ -1859,9 +2143,9 @@ $pmex4 = <<"EOM";
 </td>
 EOM
 
-}
-&header;
-print <<EOM;
+        }
+        &header;
+        print <<EOM;
 [<a href=$script?cnt=no>掲示板に戻る</a>]
 <center>
 <table width="100%"><tr><th bgcolor="#0000A0">
@@ -1895,24 +2179,26 @@ $pmex4
 <input type=submit value=\"変更\">
 </center></form>
 EOM
-&footer;
-exit;
+        &footer;
+        exit;
 
-}
+    }
 
-foreach $hd_rank(@hd_rank){
-if(!$hd_rank){next;}
-$hd_rank =~ s/\n//;
-($rname,$cnt,$pic,$bgm,$flash,$res,$rps,$la,$rest,$mcr) = split(/<>/,$hd_rank);
-$rank{$rname} = $cnt;
-$rank_ex{$rname} = "$cnt<>$pic<>$bgm<>$flash<>$res<>$rps<>$la<>$rest<>$mcr<>";
-}
+    foreach $hd_rank (@hd_rank) {
+        if ( !$hd_rank ) { next; }
+        $hd_rank =~ s/\n//;
+        ( $rname, $cnt, $pic, $bgm, $flash, $res, $rps, $la, $rest, $mcr )
+            = split( /<>/, $hd_rank );
+        $rank{$rname} = $cnt;
+        $rank_ex{$rname}
+            = "$cnt<>$pic<>$bgm<>$flash<>$res<>$rps<>$la<>$rest<>$mcr<>";
+    }
 
-@sort_rank = sort {$rank{$b} <=> $rank{$a}} keys(%rank);
+    @sort_rank = sort { $rank{$b} <=> $rank{$a} } keys(%rank);
 
-if($pass_mode){$pmex = "pass認証兼";}
-&header;
-print <<EOM;
+    if ($pass_mode) { $pmex = "pass認証兼"; }
+    &header;
+    print <<EOM;
 [<a href=$script?cnt=no>掲示板に戻る</a>]
 <center>
 <table width="100%"><tr><th bgcolor="#0000A0">
@@ -1933,441 +2219,482 @@ print <<EOM;
 <table border=1 bgcolor=white><tr><th>　</th><th>お名前</th><th>総合</th><th>画像</th><th>BGM</th><th>Flash</th><th>レス</th><th>編集</th><th>マクロ</th></tr>
 EOM
 
-foreach(@sort_rank){
-($cnt,$pic,$bgm,$flash,$res,$rps,$la,$rest,$mcr) = split(/<>/,$rank_ex{$_});
-if(!$cnt){$cnt = "0";}
-if(!$pic){$pic = "0";}
-if(!$bgm){$bgm = "0";}
-if(!$flash){$flash = "0";}
-if(!$res){$res = "0";}
-if(!$rest){$rest = "0";}
-if(!$mcr){$mcr = "0";}
+    foreach (@sort_rank) {
+        ( $cnt, $pic, $bgm, $flash, $res, $rps, $la, $rest, $mcr )
+            = split( /<>/, $rank_ex{$_} );
+        if ( !$cnt )   { $cnt   = "0"; }
+        if ( !$pic )   { $pic   = "0"; }
+        if ( !$bgm )   { $bgm   = "0"; }
+        if ( !$flash ) { $flash = "0"; }
+        if ( !$res )   { $res   = "0"; }
+        if ( !$rest )  { $rest  = "0"; }
+        if ( !$mcr )   { $mcr   = "0"; }
 
-$uenm = $_;
-$uenm =~ s/([^0-9A-Za-z_ ])/'%'.unpack('H2',$1)/ge;
-$uenm =~ s/\s/+/g;
+        $uenm = $_;
+        $uenm =~ s/([^0-9A-Za-z_ ])/'%'.unpack('H2',$1)/ge;
+        $uenm =~ s/\s/+/g;
 
-print "<tr><td><input type=checkbox name=del value=\"$_\"></td><td><a href=$script\?mode=rank_rest&pass=$in{pass}&name=$uenm\&bg_img=$bg_img>$_</a></td><td>$cnt</td><td>$pic</td><td>$bgm</td><td>$flash</td><td>$res</td><td>$rest</td><td>$mcr</td></tr>";
-}
-print "</table>";
-print "<br><input type=submit value=\"削除\"><br><br><input type=checkbox name=mon_del> <b>最終アクセス日で削除</b>";
-print "</form></center>";
+        print
+            "<tr><td><input type=checkbox name=del value=\"$_\"></td><td><a href=$script\?mode=rank_rest&pass=$in{pass}&name=$uenm\&bg_img=$bg_img>$_</a></td><td>$cnt</td><td>$pic</td><td>$bgm</td><td>$flash</td><td>$res</td><td>$rest</td><td>$mcr</td></tr>";
+    }
+    print "</table>";
+    print
+        "<br><input type=submit value=\"削除\"><br><br><input type=checkbox name=mon_del> <b>最終アクセス日で削除</b>";
+    print "</form></center>";
 
-&footer;
-exit;
+    &footer;
+    exit;
 }
 
 ## --- 記事削除処理
 sub usr_del {
-	if ($in{'del_key'} eq "") { &error("削除キーが入力モレです",'NOLOCK'); }
-	if ($in{'del'} eq "") { &error("ラジオボタンの選択がありません",'NOLOCK'); }
+    if ( $in{'del_key'} eq "" ) { &error( "削除キーが入力モレです",     'NOLOCK' ); }
+    if ( $in{'del'} eq "" )     { &error( "ラジオボタンの選択がありません", 'NOLOCK' ); }
 
-	# ログを読み込む
-	if($fll){
-		foreach (1 .. 10) {
-			unless (-e $lockfile) {last;}
-			sleep(1);
-		}
-	}
-	#open(LOG,"$logfile") || &error("Can't open $logfile");
-	sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile");
-	if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-	@lines = <LOG>;
-	close(LOG);
-	foreach $buf(@lines){ utf8::decode($buf) };
+    # ログを読み込む
+    if ($fll) {
+        foreach ( 1 .. 10 ) {
+            unless ( -e $lockfile ) { last; }
+            sleep(1);
+        }
+    }
 
-	#open(RL,"$rank_log") || &error("Can't open $rank_log");
-	sysopen(RL,"$rank_log",O_RDONLY) || &error("Can't open $rank_log");
-	@rank = <RL>;
-	close(RL);
-	foreach $buf(@rank){ utf8::decode($buf) };
+    #open(LOG,"$logfile") || &error("Can't open $logfile");
+    sysopen( LOG, "$logfile", O_RDONLY ) || &error("Can't open $logfile");
+    if ( $lockkey == 3 ) { flock( LOG, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗"); }
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-	# 親記事NO
-	$oya = $lines[0];
-	if ($oya =~ /<>/) { &error("ログが正しくありません");	}
+    #open(RL,"$rank_log") || &error("Can't open $rank_log");
+    sysopen( RL, "$rank_log", O_RDONLY ) || &error("Can't open $rank_log");
+    @rank = <RL>;
+    close(RL);
+    foreach $buf (@rank) { utf8::decode($buf) }
 
-	shift(@lines);
+    # 親記事NO
+    $oya = $lines[0];
+    if ( $oya =~ /<>/ ) { &error("ログが正しくありません"); }
 
-	## 削除キーによる記事削除 ##
-	@new=();
-	foreach $line (@lines) {
-		$dflag = 0;
-		($num,$k,$dt,$name,$email,$sub,$com,$url,$host,$pw,$c,$i,$d,$d,$img,$si) = split(/<>/,$line);
+    shift(@lines);
 
-		if ($in{'del'} eq "$dt") {
-			$dflag = 1;
+    ## 削除キーによる記事削除 ##
+    @new = ();
+    foreach $line (@lines) {
+        $dflag = 0;
+        (   $num,  $k,  $dt, $name, $email, $sub, $com, $url,
+            $host, $pw, $c,  $i,    $d,     $d,   $img, $si
+        ) = split( /<>/, $line );
 
-			$cut_name = $name;
-			$cut_name =~ s/＠.*//;
+        if ( $in{'del'} eq "$dt" ) {
+            $dflag = 1;
+
+            $cut_name = $name;
+            $cut_name =~ s/＠.*//;
             $cut_name =~ s/☆.*//;
-	        $cut_name =~ s/@.*//;
-	        $cut_name =~ s/★.*//;
+            $cut_name =~ s/@.*//;
+            $cut_name =~ s/★.*//;
 
-			if($pass_mode){
-			    foreach(@rank){
-			        ($d1,$d2,$d3,$d4,$d5,$d6) = split(/<>/,$_);
-			        if($cut_name eq "$d1"){$d6 =~ s/\n//;$encode_pwd = $d6;last;}
-			    }
-			}
+            if ($pass_mode) {
+                foreach (@rank) {
+                    ( $d1, $d2, $d3, $d4, $d5, $d6 ) = split( /<>/, $_ );
+                    if ( $cut_name eq "$d1" ) {
+                        $d6 =~ s/\n//;
+                        $encode_pwd = $d6;
+                        last;
+                    }
+                }
+            }
 
-			if(!$encode_pwd){$encode_pwd = $pw;}
-			$del_num = $num;
-			if ($k eq '') { $oyaflag=1; }
+            if ( !$encode_pwd ) { $encode_pwd = $pw; }
+            $del_num = $num;
+            if ( $k eq '' ) { $oyaflag = 1; }
 
-		}
-        elsif ($oyaflag && $del_num eq "$k") {
-			$dflag = 1;
-		}
+        }
+        elsif ( $oyaflag && $del_num eq "$k" ) {
+            $dflag = 1;
+        }
 
-		if ($dflag == 0) { push(@new,$line); }
-		else{ push(@del,$line); }
-	}
+        if   ( $dflag == 0 ) { push( @new, $line ); }
+        else                 { push( @del, $line ); }
+    }
 
-	if ($del_num eq '') { &error("$in{'del'}削除対象記事が見つかりません"); }
-	else {
-		if ($encode_pwd eq '') { &error("削除キーが設定されていません"); }
-		$plain_text = $in{'del_key'};
-		$check = &passwd_decode($encode_pwd);
-		if ($check ne 'yes') { &error("パスワードが違います"); }
-	}
+    if ( $del_num eq '' ) { &error("$in{'del'}削除対象記事が見つかりません"); }
+    else {
+        if ( $encode_pwd eq '' ) { &error("削除キーが設定されていません"); }
+        $plain_text = $in{'del_key'};
+        $check      = &passwd_decode($encode_pwd);
+        if ( $check ne 'yes' ) { &error("パスワードが違います"); }
+    }
 
-		foreach(@del){
-		($num,$k,$dt,$name,$email,$sub,$com,$url,$host,$pw,$c,$i,$d,$d,$img,$si) = split(/<>/,$_);
-			if($ImgDir2){$img =~ s/^$ImgDir2//;$img = "$ImgDir$img";}
+    foreach (@del) {
+        (   $num,  $k,  $dt, $name, $email, $sub, $com, $url,
+            $host, $pw, $c,  $i,    $d,     $d,   $img, $si
+        ) = split( /<>/, $_ );
+        if ($ImgDir2) { $img =~ s/^$ImgDir2//; $img = "$ImgDir$img"; }
 
+        if ( $img =~ /bgm$/ ) {
+            $img =~ s/bgm$//;
 
-			if($img =~ /bgm$/){
-			    $img =~ s/bgm$//;
-			
-			    #ログ互換
-			    if($img =~ /\.$/){$img="$img"."bgm";}		
+            #ログ互換
+            if ( $img =~ /\.$/ ) { $img = "$img" . "bgm"; }
 
-#			    if(-e "$img"){ unlink("$img"); }
-			}
+            #			    if(-e "$img"){ unlink("$img"); }
+        }
 
-			if($img =~ /cgm$/){
-			    $img =~ s/\.([^.]+)\.([^.]*)cgm$//;
-			    $pic = "$img.$1";$bgm = "$img.$2";
+        if ( $img =~ /cgm$/ ) {
+            $img =~ s/\.([^.]+)\.([^.]*)cgm$//;
+            $pic = "$img.$1";
+            $bgm = "$img.$2";
 
-			    #ログ互換
-			    if($bgm =~ /\.$/){$bgm="$img.bgm";}
+            #ログ互換
+            if ( $bgm =~ /\.$/ ) { $bgm = "$img.bgm"; }
 
-#			    if(-e "$pic"){ unlink("$pic"); }
-#			    if(-e "$bgm"){ unlink("$bgm"); }
-			}
+            #			    if(-e "$pic"){ unlink("$pic"); }
+            #			    if(-e "$bgm"){ unlink("$bgm"); }
+        }
 
-#			elsif(($img) && (-e "$img")){ unlink("$img"); }
-		}
+        #			elsif(($img) && (-e "$img")){ unlink("$img"); }
+    }
 
-	# 親記事NOを付加
-	unshift(@new,$oya);
+    # 親記事NOを付加
+    unshift( @new, $oya );
 
-	## ログを更新 ##
-	if($fll){
-		&fll("$lockfile","$logfile",@new);
-	}else{
-		#open(LOG, "+< $logfile") || &error("Can't open $logfile");
-		sysopen(LOG, "$logfile", O_RDWR ) || &error("Can't open $logfile");
-		if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-		truncate(LOG, 0);
-		seek(LOG, 0, 0);
-		print LOG @new;
-		close(LOG);
-	}
+    ## ログを更新 ##
+    if ($fll) {
+        &fll( "$lockfile", "$logfile", @new );
+    }
+    else {
+        #open(LOG, "+< $logfile") || &error("Can't open $logfile");
+        sysopen( LOG, "$logfile", O_RDWR ) || &error("Can't open $logfile");
+        if ( $lockkey == 3 ) {
+            flock( LOG, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+        }
+        truncate( LOG, 0 );
+        seek( LOG, 0, 0 );
+        print LOG @new;
+        close(LOG);
+    }
 
-	# ロック解除
-	if (-e $lockfile) { unlink($lockfile); }
+    # ロック解除
+    if ( -e $lockfile ) { unlink($lockfile); }
 
-
-	# 削除画面にもどる
-	&msg_del;
+    # 削除画面にもどる
+    &msg_del;
 }
 
 ## --- 管理者一括記事削除
 sub admin_del {
-	if  (crypt($in{'pass'}, substr($password, $salt, 2)) ne $password) {
-	&error("パスワードが違います",'NOLOCK');
-	}
+    if ( crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password ) {
+        &error( "パスワードが違います", 'NOLOCK' );
+    }
 
-	if ($in{'del'} eq "") { &error("チェックボックスの選択がありません",'NOLOCK'); }
+    if ( $in{'del'} eq "" ) { &error( "チェックボックスの選択がありません", 'NOLOCK' ); }
 
-	# ログを読み込む
-	if($fll){
-		foreach (1 .. 10) {
-			unless (-e $lockfile) {last;}
-			sleep(1);
-		}
-	}
-	#open(LOG,"$logfile") || &error("Can't open $logfile");
-	sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile");
-	if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-	@lines = <LOG>;
-	close(LOG);
-	foreach $buf(@lines){ utf8::decode($buf) };
+    # ログを読み込む
+    if ($fll) {
+        foreach ( 1 .. 10 ) {
+            unless ( -e $lockfile ) { last; }
+            sleep(1);
+        }
+    }
 
-	# 親記事NO
-	$oya = $lines[0];
-	if ($oya =~ /<>/) {
-		&error("ログが正しくありません。<P>
-			<small>\(v2.5以前のログの場合は変換の必要があります\)<\/small>");
-	}
+    #open(LOG,"$logfile") || &error("Can't open $logfile");
+    sysopen( LOG, "$logfile", O_RDONLY ) || &error("Can't open $logfile");
+    if ( $lockkey == 3 ) { flock( LOG, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗"); }
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-	shift(@lines);
+    # 親記事NO
+    $oya = $lines[0];
+    if ( $oya =~ /<>/ ) {
+        &error(
+            "ログが正しくありません。<P>
+			<small>\(v2.5以前のログの場合は変換の必要があります\)<\/small>"
+        );
+    }
 
-	## 削除処理
-	foreach $line (@lines) {
-		$dflag=0;
-		($num,$k,$dt,$name,$email,$sub,$com,$url,$host,$pw,$d,$d,$d,$d,$img,$si) = split(/<>/,$line);
+    shift(@lines);
 
-		foreach $del (@delete) {
-			if ($del eq "$dt") {
+    ## 削除処理
+    foreach $line (@lines) {
+        $dflag = 0;
+        (   $num,  $k,  $dt, $name, $email, $sub, $com, $url,
+            $host, $pw, $d,  $d,    $d,     $d,   $img, $si
+        ) = split( /<>/, $line );
 
+        foreach $del (@delete) {
+            if ( $del eq "$dt" ) {
 
-			if($ImgDir2){$img =~ s/^$ImgDir2//;$img = "$ImgDir$img";}
+                if ($ImgDir2) { $img =~ s/^$ImgDir2//; $img = "$ImgDir$img"; }
 
-			if($img =~ /bgm$/){
-			$img =~ s/bgm$//;
-			
-			#ログ互換
-			if($img =~ /\.$/){$img="$img"."bgm";}		
+                if ( $img =~ /bgm$/ ) {
+                    $img =~ s/bgm$//;
 
-#			if(-e "$img"){ unlink("$img"); }
-			}
+                    #ログ互換
+                    if ( $img =~ /\.$/ ) { $img = "$img" . "bgm"; }
 
-			if($img =~ /cgm$/){
-			$img =~ s/\.([^.]+)\.([^.]*)cgm$//;
-			$pic = "$img.$1";$bgm = "$img.$2";
+                    #			if(-e "$img"){ unlink("$img"); }
+                }
 
-			#ログ互換
-			if($bgm =~ /\.$/){$bgm="$img.bgm";}
+                if ( $img =~ /cgm$/ ) {
+                    $img =~ s/\.([^.]+)\.([^.]*)cgm$//;
+                    $pic = "$img.$1";
+                    $bgm = "$img.$2";
 
-#			if(-e "$pic"){ unlink("$pic"); }
-#			if(-e "$bgm"){ unlink("$bgm"); }
-			}
+                    #ログ互換
+                    if ( $bgm =~ /\.$/ ) { $bgm = "$img.bgm"; }
 
-#			elsif(($img) && (-e "$img")){ unlink("$img"); }
+                    #			if(-e "$pic"){ unlink("$pic"); }
+                    #			if(-e "$bgm"){ unlink("$bgm"); }
+                }
 
-				$dflag = 1;
-				$del_num = $num;
-				if ($k eq '') { $oyaflag=1; }
+                #			elsif(($img) && (-e "$img")){ unlink("$img"); }
 
-			} elsif ($oyaflag && $del_num eq "$k") {
-				$dflag = 1;
-			}
-		}
-		if ($dflag == 0) { push(@new,$line); }
-	}
+                $dflag   = 1;
+                $del_num = $num;
+                if ( $k eq '' ) { $oyaflag = 1; }
 
-	# 親記事NOを付加
-	unshift(@new,$oya);
+            }
+            elsif ( $oyaflag && $del_num eq "$k" ) {
+                $dflag = 1;
+            }
+        }
+        if ( $dflag == 0 ) { push( @new, $line ); }
+    }
 
-	## ログを更新 ##
+    # 親記事NOを付加
+    unshift( @new, $oya );
 
-	if($fll){
-		&fll("$lockfile","$logfile",@new);
-	}else{
-		#open(LOG, "+< $logfile") || &error("Can't open $logfile");
-		sysopen(LOG, "$logfile", O_RDWR ) || &error("Can't open $logfile");
-		if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-		truncate(LOG, 0);
-		seek(LOG, 0, 0);
-		print LOG @new;
-		close(LOG);
-	}
+    ## ログを更新 ##
 
+    if ($fll) {
+        &fll( "$lockfile", "$logfile", @new );
+    }
+    else {
+        #open(LOG, "+< $logfile") || &error("Can't open $logfile");
+        sysopen( LOG, "$logfile", O_RDWR ) || &error("Can't open $logfile");
+        if ( $lockkey == 3 ) {
+            flock( LOG, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+        }
+        truncate( LOG, 0 );
+        seek( LOG, 0, 0 );
+        print LOG @new;
+        close(LOG);
+    }
 
-	# ロック解除
-	if (-e $lockfile) { unlink($lockfile); }
+    # ロック解除
+    if ( -e $lockfile ) { unlink($lockfile); }
 
-	# 削除画面にもどる
-	&msg_del;
+    # 削除画面にもどる
+    &msg_del;
 }
 
 ## --- 管理者入室画面
 sub admin {
-	&header;
-	print "<center><h4>パスワードを入力してください</h4>\n";
-	print "<form action=\"$script\" method=$method>\n";
-	print "記事削除:<input type=radio name=mode value=\"msg_del\">\n";
-	print "記事編集:<input type=radio name=mode value=\"rest\">\n";
-	if($pass_mode){$pmex = "pass認証";}else{$pmex = "だ〜び〜";}
-	print "$pmex:<input type=radio name=mode value=\"rank_rest\">\n";
+    &header;
+    print "<center><h4>パスワードを入力してください</h4>\n";
+    print "<form action=\"$script\" method=$method>\n";
+    print "記事削除:<input type=radio name=mode value=\"msg_del\">\n";
+    print "記事編集:<input type=radio name=mode value=\"rest\">\n";
+    if   ($pass_mode) { $pmex = "pass認証"; }
+    else              { $pmex = "だ〜び〜"; }
+    print "$pmex:<input type=radio name=mode value=\"rank_rest\">\n";
 
-	if ($in{'ds'}) {
-	print "<input type=hidden name=ds value='on'>\n";
-	}
-	print "<input type=hidden name=action value=\"admin\">\n";
-	print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
-	print "<input type=password name=pass size=8><input type=submit value=\" 認証 \">\n";
-	print "</form></center><P><hr><P>\n";
-	print "<a href='$script?papost=pcode'>PASSの変更</a><br>\n";
-	&footer;
-	exit;
+    if ( $in{'ds'} ) {
+        print "<input type=hidden name=ds value='on'>\n";
+    }
+    print "<input type=hidden name=action value=\"admin\">\n";
+    print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
+    print
+        "<input type=password name=pass size=8><input type=submit value=\" 認証 \">\n";
+    print "</form></center><P><hr><P>\n";
+    print "<a href='$script?papost=pcode'>PASSの変更</a><br>\n";
+    &footer;
+    exit;
 }
 
 ## --- 時間を取得
 sub get_time {
-	$ENV{'TZ'} = "JST-9";
-	($sec,$min,$hour,$mday,$mon,$year,$wday,$d,$d) = localtime(time);
-	$year += 1900;
-	$mon++;
-	if ($mon  < 10) { $mon  = "0$mon";  }
-	if ($mday < 10) { $mday = "0$mday"; }
-	if ($hour < 10) { $hour = "0$hour"; }
-	if ($min  < 10) { $min  = "0$min";  }
-	if ($sec  < 10) { $sec  = "0$sec";  }
-	$week = ('Sun','Mon','Tue','Wed','Thu','Fri','Sat') [$wday];
+    $ENV{'TZ'} = "JST-9";
+    ( $sec, $min, $hour, $mday, $mon, $year, $wday, $d, $d )
+        = localtime(time);
+    $year += 1900;
+    $mon++;
+    if ( $mon < 10 )  { $mon  = "0$mon"; }
+    if ( $mday < 10 ) { $mday = "0$mday"; }
+    if ( $hour < 10 ) { $hour = "0$hour"; }
+    if ( $min < 10 )  { $min  = "0$min"; }
+    if ( $sec < 10 )  { $sec  = "0$sec"; }
+    $week = ( 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' )[$wday];
 
-	# 日時のフォーマット
-	$date = "$year\/$mon\/$mday\($week\)/$hour\:$min\:$sec";
-	$imgdata="$year$mon$mday$hour$min$sec";
+    # 日時のフォーマット
+    $date    = "$year\/$mon\/$mday\($week\)/$hour\:$min\:$sec";
+    $imgdata = "$year$mon$mday$hour$min$sec";
 }
 
 ## --- カウンタ処理
 sub counter {
-	# 閲覧時のみカウントアップ
-	$match=0;
-	if ($in{'mode'} eq '' && !$in{'cnt'}) {
-		# カウンタロック
-		if ($lockkey && !$fll) { &lock3; }
 
-		$match=1;
-	}
+    # 閲覧時のみカウントアップ
+    $match = 0;
+    if ( $in{'mode'} eq '' && !$in{'cnt'} ) {
 
-	# カウントファイルを読みこみ
-	if($fll){
-		foreach (1 .. 10) {
-			unless (-e $cntlock) {last;}
-			sleep(1);
-		}
-	}
-	#open(NO,"$cntfile") || &error("Can't open $cntfile",'0');
-	sysopen(NO,"$cntfile",O_RDONLY | O_CREAT ) || error("Can't open $cntfile",'0');
-	if($lockkey == 3){flock(NO,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-	$cnt = <NO>;
-	close(NO);
-	chop($cnt);
+        # カウンタロック
+        if ( $lockkey && !$fll ) { &lock3; }
 
-	if(!$cnt && $cnt_ml){
-		#open(NO,"$cntfile2") || &error("Can't open $cntfile2",'0');
-		sysopen(NO,"$cntfile2",O_RDONLY) || &error("Can't open $cntfile2",'0');
-		$cnt = <NO>;
-		close(NO);
-		chop($cnt);
-	}
+        $match = 1;
+    }
 
-	# カウントアップ
-	if ($match) {
+    # カウントファイルを読みこみ
+    if ($fll) {
+        foreach ( 1 .. 10 ) {
+            unless ( -e $cntlock ) { last; }
+            sleep(1);
+        }
+    }
 
-		$cnt++;
-		$cont="$cnt\n";
+    #open(NO,"$cntfile") || &error("Can't open $cntfile",'0');
+    sysopen( NO, "$cntfile", O_RDONLY | O_CREAT )
+        || error( "Can't open $cntfile", '0' );
+    if ( $lockkey == 3 ) { flock( NO, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗"); }
+    $cnt = <NO>;
+    close(NO);
+    chop($cnt);
 
-		# 更新
-		if($fll){
-			&fll("$cntlock","$cntfile","$cont");
-		}else{
-			#open(OUT, "+< $cntfile") || &error("Can't open $cntfile");
-			sysopen(OUT, "$cntfile", O_RDWR ) || &error("Can't open $cntfile");
-			if($lockkey == 3){flock(OUT,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-			truncate(OUT, 0);
-			seek(OUT, 0, 0);
-			print OUT $cont;
-			close(OUT);
-		}
+    if ( !$cnt && $cnt_ml ) {
 
-		if($cnt_ml){
-			#open(OUT, "+< $cntfile2") || &error("Can't open $cntfile2");
-			sysopen(OUT, "$cntfile2" , O_RDWR ) || &error("Can't open $cntfile2");
-			if($lockkey == 3){flock(OUT,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-			truncate(OUT, 0);
-			seek(OUT, 0, 0);
-			print OUT $cont;
-			close(OUT);
-		}
+        #open(NO,"$cntfile2") || &error("Can't open $cntfile2",'0');
+        sysopen( NO, "$cntfile2", O_RDONLY )
+            || &error( "Can't open $cntfile2", '0' );
+        $cnt = <NO>;
+        close(NO);
+        chop($cnt);
+    }
 
-	}
+    # カウントアップ
+    if ($match) {
 
-	# カウンタロック解除
-	if ($lockkey && !$fll) {
-		if (-e $cntlock) { unlink($cntlock); }
-	}
-	
-	# 桁数調整
-	while(length($cnt) < $mini_fig) { $cnt = '0' . "$cnt"; }
-	@cnts = split(//,$cnt);
+        $cnt++;
+        $cont = "$cnt\n";
 
-	print "<table><tr><td>\n";
+        # 更新
+        if ($fll) {
+            &fll( "$cntlock", "$cntfile", "$cont" );
+        }
+        else {
+            #open(OUT, "+< $cntfile") || &error("Can't open $cntfile");
+            sysopen( OUT, "$cntfile", O_RDWR )
+                || &error("Can't open $cntfile");
+            if ( $lockkey == 3 ) {
+                flock( OUT, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+            }
+            truncate( OUT, 0 );
+            seek( OUT, 0, 0 );
+            print OUT $cont;
+            close(OUT);
+        }
 
-	# GIFカウンタ表示
-	if ($counter == 2) {
-		foreach (0 .. $#cnts) {
-			print "<img src=\"$gif_path/$cnts[$_]\.gif\" alt=\"$cnts[$_]\" width=\"$mini_w\" height=\"$mini_h\">";
-		}
+        if ($cnt_ml) {
 
-	# テキストカウンタ表示
-	} else {
-		print "<font color=\"$cnt_color\" face=\"verdana,Times New Roman,Arial\">$cnt</font>";
-	}
+            #open(OUT, "+< $cntfile2") || &error("Can't open $cntfile2");
+            sysopen( OUT, "$cntfile2", O_RDWR )
+                || &error("Can't open $cntfile2");
+            if ( $lockkey == 3 ) {
+                flock( OUT, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+            }
+            truncate( OUT, 0 );
+            seek( OUT, 0, 0 );
+            print OUT $cont;
+            close(OUT);
+        }
 
-	print "</td></tr></table>\n";
+    }
+
+    # カウンタロック解除
+    if ( $lockkey && !$fll ) {
+        if ( -e $cntlock ) { unlink($cntlock); }
+    }
+
+    # 桁数調整
+    while ( length($cnt) < $mini_fig ) { $cnt = '0' . "$cnt"; }
+    @cnts = split( //, $cnt );
+
+    print "<table><tr><td>\n";
+
+    # GIFカウンタ表示
+    if ( $counter == 2 ) {
+        foreach ( 0 .. $#cnts ) {
+            print
+                "<img src=\"$gif_path/$cnts[$_]\.gif\" alt=\"$cnts[$_]\" width=\"$mini_w\" height=\"$mini_h\">";
+        }
+
+        # テキストカウンタ表示
+    }
+    else {
+        print
+            "<font color=\"$cnt_color\" face=\"verdana,Times New Roman,Arial\">$cnt</font>";
+    }
+
+    print "</td></tr></table>\n";
 }
 
 ## --- カウンタロック
 sub lock3 {
-	$cnt_flag = 0;
-	foreach (1 .. 7) {
-		if (-e $cntlock) { sleep(1); }
-		else {
-			#open(LOCK,">$cntlock");
-			sysopen(LOCK,"$cntlock", O_WRONLY | O_TRUNC | O_CREAT );
-			close(LOCK);
-			$cnt_flag = 1;
-			last;
-		}
-	}
-	if (!$cnt_flag) { unlink($cntlock); }
+    $cnt_flag = 0;
+    foreach ( 1 .. 7 ) {
+        if ( -e $cntlock ) { sleep(1); }
+        else {
+            #open(LOCK,">$cntlock");
+            sysopen( LOCK, "$cntlock", O_WRONLY | O_TRUNC | O_CREAT );
+            close(LOCK);
+            $cnt_flag = 1;
+            last;
+        }
+    }
+    if ( !$cnt_flag ) { unlink($cntlock); }
 }
-
 
 ## --- パスワード暗号処理
 sub passwd_encode {
-	$now = time;
-	($p1, $p2) = unpack("C2", $now);
-	$wk = $now / (60*60*24*7) + $p1 + $p2 - 8;
-	@saltset = ('a'..'z','A'..'Z','0'..'9','.','/');
-	$nsalt = $saltset[$wk % 64] . $saltset[$now % 64];
-	$ango = crypt($_[0], $nsalt);
+    $now = time;
+    ( $p1, $p2 ) = unpack( "C2", $now );
+    $wk      = $now / ( 60 * 60 * 24 * 7 ) + $p1 + $p2 - 8;
+    @saltset = ( 'a' .. 'z', 'A' .. 'Z', '0' .. '9', '.', '/' );
+    $nsalt   = $saltset[ $wk % 64 ] . $saltset[ $now % 64 ];
+    $ango    = crypt( $_[0], $nsalt );
 }
 
 ## --- パスワード照合処理
 sub passwd_decode {
-	if ($_[0] =~ /^\$1\$/) { $key = 3; }
-	else { $key = 0; }
+    if   ( $_[0] =~ /^\$1\$/ ) { $key = 3; }
+    else                       { $key = 0; }
 
-	$check = "no";
-	if (crypt($plain_text, substr($_[0],$key,2)) eq "$_[0]") {
-		$check = "yes";
-	}
+    $check = "no";
+    if ( crypt( $plain_text, substr( $_[0], $key, 2 ) ) eq "$_[0]" ) {
+        $check = "yes";
+    }
 }
 
 ## --- HTMLのヘッダー
 sub header {
-	if(!$pt_ck){
-		$pt_b = $pt + 2 . 'pt';
-		$pt_s = $pt - 1 . 'pt';
-		$pt .= pt;
-		$t_point .= pt;
-		$pt_ck = 1;
-	}
+    if ( !$pt_ck ) {
+        $pt_b = $pt + 2 . 'pt';
+        $pt_s = $pt - 1 . 'pt';
+        $pt      .= pt;
+        $t_point .= pt;
+        $pt_ck = 1;
+    }
 
-	if($css){
-	if ($backgif) { $bgpic = $backgif; }
-	elsif ($bg_img) { $bgpic = $bg_img; }
-	$bdcss="body{ background:url($bgpic) $bgrep $bgatc $bg_pos}";
-	if($ENV{'HTTP_USER_AGENT'} !~ /MSIE/){$css = 0;}
-	}
+    if ($css) {
+        if    ($backgif) { $bgpic = $backgif; }
+        elsif ($bg_img)  { $bgpic = $bg_img; }
+        $bdcss = "body{ background:url($bgpic) $bgrep $bgatc $bg_pos}";
+        if ( $ENV{'HTTP_USER_AGENT'} !~ /MSIE/ ) { $css = 0; }
+    }
 
-	$header = <<"EOM";
+    $header = <<"EOM";
 <!doctype html>
 <html>
 <head>
@@ -2413,22 +2740,26 @@ background-color : #ffffff;
 </head>
 EOM
 
-	# bodyタグ
-	if ($backgif && !$css) { $bgkey = "background=\"$backgif\" bgcolor=$bgcolor"; }
-	elsif ($bg_img && !$css) { $bgkey = "background=\"$bg_img\" bgcolor=$bgcolor"; }
-	else { $bgkey = "bgcolor=$bgcolor"; }
-	$header  .= "<body $bgkey text=$text link=$link vlink=$vlink alink=$alink>\n";
+    # bodyタグ
+    if ( $backgif && !$css ) {
+        $bgkey = "background=\"$backgif\" bgcolor=$bgcolor";
+    }
+    elsif ( $bg_img && !$css ) {
+        $bgkey = "background=\"$bg_img\" bgcolor=$bgcolor";
+    }
+    else { $bgkey = "bgcolor=$bgcolor"; }
+    $header
+        .= "<body $bgkey text=$text link=$link vlink=$vlink alink=$alink>\n";
 
-
-	print "Content-type: text/html\n\n";
-		print "$header";
+    print "Content-type: text/html\n\n";
+    print "$header";
 }
 
 ## --- HTMLのフッター
 sub footer {
-	## MakiMakiさんの画像使用の有無に関わらずこの２箇所のリンク部を
-	## 削除することはできません。
-	$footer = <<"_HTML_";
+    ## MakiMakiさんの画像使用の有無に関わらずこの２箇所のリンク部を
+    ## 削除することはできません。
+    $footer = <<"_HTML_";
 <center>$banner2<P><small>
 <!-- 削除はしてない(笑
 KENT &amp; MakiMaki<br>-->
@@ -2439,420 +2770,494 @@ $ver <a href="$script?mode=B" style=text-decoration:none;color:black;>b</a>y え
 </small></center>
 _HTML_
 
-	$id1 = "$yeart$mont$mdayt$hourt$mint$sect";
-	$id2 = rand(1000000000);
-	$id2 = sprintf("%.10d",$id2);
-	for( $t=0; $t<32; $t++ ){ 
-	$id3 .= $st_table[ int( @string_table * rand() ) ]; }
-if($in{'rank'}){
-$footer .= "<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>";
-}
+    $id1 = "$yeart$mont$mdayt$hourt$mint$sect";
+    $id2 = rand(1000000000);
+    $id2 = sprintf( "%.10d", $id2 );
+    for ( $t = 0; $t < 32; $t++ ) {
+        $id3 .= $st_table[ int( @string_table * rand() ) ];
+    }
+    if ( $in{'rank'} ) {
+        $footer
+            .= "<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>";
+    }
 
-$footer .= "</body></html>";
-if($nobanner){$footer .= "";}
-print "$footer";
+    $footer .= "</body></html>";
+    if ($nobanner) { $footer .= ""; }
+    print "$footer";
 }
 
 ## --- 自動リンク
 sub auto_link {
-	$_[0] =~ s#http://([\x21-\x7e]+)#<a href="http://$1" target='_top'>http://$1</a>#g;
-	$_[0] =~ s#https://([\x21-\x7e]+)#<a href="https://$1" target='_top'>https://$1</a>#g;
-	$_[0] =~ s#ftp://([\x21-\x7e]+)#<a href="ftp://$1" target='_top'>ftp://$1</a>#g;
-	$_[0] =~ s#news://([\x21-\x7e]+)#<a href="news://$1" target='_top'>news://$1</a>#g;
+    $_[0]
+        =~ s#http://([\x21-\x7e]+)#<a href="http://$1" target='_top'>http://$1</a>#g;
+    $_[0]
+        =~ s#https://([\x21-\x7e]+)#<a href="https://$1" target='_top'>https://$1</a>#g;
+    $_[0]
+        =~ s#ftp://([\x21-\x7e]+)#<a href="ftp://$1" target='_top'>ftp://$1</a>#g;
+    $_[0]
+        =~ s#news://([\x21-\x7e]+)#<a href="news://$1" target='_top'>news://$1</a>#g;
 }
 
 ## --- イメージ画像表示
 sub image {
 
-	$i=0; $j=0;
-	splice(@icon1,0,2);
-	splice(@icon2,0,2);
-	splice(@usr_n,0,2);
-	$stop = @icon1;
+    $i = 0;
+    $j = 0;
+    splice( @icon1, 0, 2 );
+    splice( @icon2, 0, 2 );
+    splice( @usr_n, 0, 2 );
+    $stop = @icon1;
 
-$ia_num = @icon1;
-if($ia_num){
+    $ia_num = @icon1;
+    if ($ia_num) {
 
-if($in{ife}){$ife_e = "&ife=on";}
+        if ( $in{ife} ) { $ife_e = "&ife=on"; }
 
-if($in{i_pg} eq "self"){
-	&get_cookie;
+        if ( $in{i_pg} eq "self" ) {
+            &get_cookie;
 
-	$t = $s = 0 ;
-	
-	foreach(@icon1){
-		if($c_name eq "$usr_n[$t]"){push(@self_ico,"$Inum[$t]\t$icon1[$t]\t$icon2[$t]\t\n");}
-		++$t;
-	}
+            $t = $s = 0;
 
-	foreach(@self_ico){
-		($Inum[$s],$icon1[$s],$icon2[$s]) = split(/\t/,$_);
-		++$s;
-	}
-	$st_num = 0;$stop = @self_ico - 1;
-}
-elsif($in{i_pg} eq "all" || $in{i_ser}){$st_num = 0; $stop = $ia_num - 1;}
-else{
-if(!$in{i_pg}){$in{i_pg} = 1;}
-$ict_num_ex = "page :";
+            foreach (@icon1) {
+                if ( $c_name eq "$usr_n[$t]" ) {
+                    push( @self_ico,
+                        "$Inum[$t]\t$icon1[$t]\t$icon2[$t]\t\n" );
+                }
+                ++$t;
+            }
 
-$ict_num = int(($ia_num - 1)/100) + 1;
+            foreach (@self_ico) {
+                ( $Inum[$s], $icon1[$s], $icon2[$s] ) = split( /\t/, $_ );
+                ++$s;
+            }
+            $st_num = 0;
+            $stop   = @self_ico - 1;
+        }
+        elsif ( $in{i_pg} eq "all" || $in{i_ser} ) {
+            $st_num = 0;
+            $stop   = $ia_num - 1;
+        }
+        else {
+            if ( !$in{i_pg} ) { $in{i_pg} = 1; }
+            $ict_num_ex = "page :";
 
-$st_num = ($in{i_pg} - 1) * 100;
-$stop = $st_num + 100;
-if($stop > $ia_num){$stop = $ia_num;}
---$stop;
-foreach(1 .. $ict_num){
-if($in{i_pg} eq "$_"){$ict_num_ex = "$ict_num_ex <b>$_</b>";}
-else{$ict_num_ex = "$ict_num_ex <a href=\"$script?i_pg=$_&mode=image$ife_e&bg_img=$in{bg_img}\">$_</a>";}
-}
+            $ict_num = int( ( $ia_num - 1 ) / 100 ) + 1;
 
-$ict_num_ex = "<br>$ict_num_ex <a href=\"$script?i_pg=all&mode=image&bg_img=$in{bg_img}\">all</a>";
-$ict_num_ex = "$ict_num_ex <a href=\"$script?i_pg=self&mode=image&bg_img=$in{bg_img}\">self</a>";
-}
+            $st_num = ( $in{i_pg} - 1 ) * 100;
+            $stop   = $st_num + 100;
+            if ( $stop > $ia_num ) { $stop = $ia_num; }
+            --$stop;
+            foreach ( 1 .. $ict_num ) {
+                if ( $in{i_pg} eq "$_" ) {
+                    $ict_num_ex = "$ict_num_ex <b>$_</b>";
+                }
+                else {
+                    $ict_num_ex
+                        = "$ict_num_ex <a href=\"$script?i_pg=$_&mode=image$ife_e&bg_img=$in{bg_img}\">$_</a>";
+                }
+            }
 
-}
+            $ict_num_ex
+                = "<br>$ict_num_ex <a href=\"$script?i_pg=all&mode=image&bg_img=$in{bg_img}\">all</a>";
+            $ict_num_ex
+                = "$ict_num_ex <a href=\"$script?i_pg=self&mode=image&bg_img=$in{bg_img}\">self</a>";
+        }
 
-	&header;
-	print "<center><hr width=\"75%\">\n";
-	print "<h3>イメージ画像サンプル</h3>\n";
-	print "<P>現在登録されているイメージ画像は以下のとおりです。開けるなって言ったのにぃ（ｗ\n";
-	if($in{ife}){
-		print "<P><a href=\"$script?mode=image&i_pg=$in{i_pg}&bg_img=$in{bg_img}\">アイコンファイル名は表示しない</a>\n";
-	}else{
-		print "<P><a href=\"$script?mode=image&i_pg=$in{i_pg}&ife=on&bg_img=$in{bg_img}\">アイコンファイル名も表示する</a>\n";
-	}
-	print "<P><hr width=\"75%\">\n";
-	print "$ict_num_ex\n";
-	if($in{i_ser}){
-		if($in{sort}){$srt_ex = "&sort=rgd";}
-		print"<br><a href=\"$script?mode=image$srt_ex&bg_img=$in{bg_img}\">通常ページ表示\</a>\n";
-	}
-	print "<P><form action=\"$script\">\n";
-	print "<input type=hidden name=mode value=image>\n";
-	print "<input type=hidden name=bg_img value=\"$in{bg_img}\">\n";
-	if($in{sort}){print "<input type=hidden name=sort value=rgd>\n";}
-	print "<table><tr><th>アイコン名検索：<input type=text name=i_ser value=\"$in{i_ser}\">　<input type=submit value=\"検索\"></th></tr>\n";
-	print "<tr><th>検索条件：</b><input type=radio name=ser_sort value=\"0\" checked>AND　<input type=radio name=ser_sort value=\"1\">OR</th></tr>\n";
-	print "<tr><th>アイコン名は「半角スペース」で区切って複数指定できます。</th></tr>\n</table></form>\n";
-	print "<P><table border=1 cellpadding=5 cellspacing=0><tr>\n";
+    }
 
-	$j = $st_num;
-	if($in{i_ser}){
-		@i_ser = split(/ /,$in{i_ser});
-	}
-	foreach ($st_num .. $stop) {
-		$inum = $j + 1;
-		if(@i_ser){
-			foreach $is(@i_ser){
-				$sc_ck = 0;
-				if (index($icon2[$_],$is) >= 0) {
-					$sc_ck = 1;
-					if($in{ser_sort}){last;}
-				}elsif(!$in{ser_sort}){
-					last;
-				}
-			}
-			if ($sc_ck) {
-				$it = $i + 1;$ic=1;
-				if($in{ife}){$ifee = "<br>$icon1[$_]";}
-				print "<th><img src=\"$icon_dir$icon1[$_]\" ALIGN=middle><br>$inum:$icon2[$_]$ifee</th>\n";
-				$i++; 
-			}else{
-				$ic=0;
-			}
-		}else{
-			$it = $i + 1;
-			if($in{ife}){$ifee = "<br>$icon1[$_]";}
-			print "<th><img src=\"$icon_dir$icon1[$_]\" ALIGN=middle><br>$inum:$icon2[$_]$ifee</th>\n";
-			$i++; 
-		}
-		if ($ic && $it % 5 == 0) { print '</tr><tr>';}
-		if ($j eq "$stop") {
-			$end_num = $i;
-			if ($it % 5 == 0) { last; }
-			while ($it % 5) { print "<th><br></th>"; $i++; $it = $i + 1;}
-		}
-		$j++; $ic=1;
-	}
+    &header;
+    print "<center><hr width=\"75%\">\n";
+    print "<h3>イメージ画像サンプル</h3>\n";
+    print "<P>現在登録されているイメージ画像は以下のとおりです。開けるなって言ったのにぃ（ｗ\n";
+    if ( $in{ife} ) {
+        print
+            "<P><a href=\"$script?mode=image&i_pg=$in{i_pg}&bg_img=$in{bg_img}\">アイコンファイル名は表示しない</a>\n";
+    }
+    else {
+        print
+            "<P><a href=\"$script?mode=image&i_pg=$in{i_pg}&ife=on&bg_img=$in{bg_img}\">アイコンファイル名も表示する</a>\n";
+    }
+    print "<P><hr width=\"75%\">\n";
+    print "$ict_num_ex\n";
+    if ( $in{i_ser} ) {
+        if ( $in{sort} ) { $srt_ex = "&sort=rgd"; }
+        print
+            "<br><a href=\"$script?mode=image$srt_ex&bg_img=$in{bg_img}\">通常ページ表示\</a>\n";
+    }
+    print "<P><form action=\"$script\">\n";
+    print "<input type=hidden name=mode value=image>\n";
+    print "<input type=hidden name=bg_img value=\"$in{bg_img}\">\n";
+    if ( $in{sort} ) { print "<input type=hidden name=sort value=rgd>\n"; }
+    print
+        "<table><tr><th>アイコン名検索：<input type=text name=i_ser value=\"$in{i_ser}\">　<input type=submit value=\"検索\"></th></tr>\n";
+    print
+        "<tr><th>検索条件：</b><input type=radio name=ser_sort value=\"0\" checked>AND　<input type=radio name=ser_sort value=\"1\">OR</th></tr>\n";
+    print "<tr><th>アイコン名は「半角スペース」で区切って複数指定できます。</th></tr>\n</table></form>\n";
+    print "<P><table border=1 cellpadding=5 cellspacing=0><tr>\n";
 
-	print "</tr></table><br>\n";
-	if($in{ser_sort}){$sst = "OR";}else{$sst = "AND";}
-	if($in{i_ser}){print "<b>$sst 条件で $in{i_ser} を検索 $end_num 個該当しました。</b>";}
-	print "$ict_num_ex<br><br>\n";
-	print "<FORM><INPUT TYPE=\"button\" VALUE=\"  CLOSE  \" onClick=\"top.close();\"></FORM></center>\n";
-	print "</body></html>\n";
-	if($nobanner){print "";}
-	exit;
+    $j = $st_num;
+    if ( $in{i_ser} ) {
+        @i_ser = split( / /, $in{i_ser} );
+    }
+    foreach ( $st_num .. $stop ) {
+        $inum = $j + 1;
+        if (@i_ser) {
+            foreach $is (@i_ser) {
+                $sc_ck = 0;
+                if ( index( $icon2[$_], $is ) >= 0 ) {
+                    $sc_ck = 1;
+                    if ( $in{ser_sort} ) { last; }
+                }
+                elsif ( !$in{ser_sort} ) {
+                    last;
+                }
+            }
+            if ($sc_ck) {
+                $it = $i + 1;
+                $ic = 1;
+                if ( $in{ife} ) { $ifee = "<br>$icon1[$_]"; }
+                print
+                    "<th><img src=\"$icon_dir$icon1[$_]\" ALIGN=middle><br>$inum:$icon2[$_]$ifee</th>\n";
+                $i++;
+            }
+            else {
+                $ic = 0;
+            }
+        }
+        else {
+            $it = $i + 1;
+            if ( $in{ife} ) { $ifee = "<br>$icon1[$_]"; }
+            print
+                "<th><img src=\"$icon_dir$icon1[$_]\" ALIGN=middle><br>$inum:$icon2[$_]$ifee</th>\n";
+            $i++;
+        }
+        if ( $ic && $it % 5 == 0 ) { print '</tr><tr>'; }
+        if ( $j eq "$stop" ) {
+            $end_num = $i;
+            if ( $it % 5 == 0 ) { last; }
+            while ( $it % 5 ) { print "<th><br></th>"; $i++; $it = $i + 1; }
+        }
+        $j++;
+        $ic = 1;
+    }
+
+    print "</tr></table><br>\n";
+    if   ( $in{ser_sort} ) { $sst = "OR"; }
+    else                   { $sst = "AND"; }
+    if ( $in{i_ser} ) {
+        print "<b>$sst 条件で $in{i_ser} を検索 $end_num 個該当しました。</b>";
+    }
+    print "$ict_num_ex<br><br>\n";
+    print
+        "<FORM><INPUT TYPE=\"button\" VALUE=\"  CLOSE  \" onClick=\"top.close();\"></FORM></center>\n";
+    print "</body></html>\n";
+    if ($nobanner) { print ""; }
+    exit;
 }
 
 ## --- ホスト名取得
 sub get_host {
-	$host = $ENV{'REMOTE_HOST'};
-	$addr = $ENV{'REMOTE_ADDR'};
+    $host = $ENV{'REMOTE_HOST'};
+    $addr = $ENV{'REMOTE_ADDR'};
 
-	if ($get_remotehost) {
-		if ($host eq "" || $host eq "$addr") {
-			$host = gethostbyaddr(pack("C4", split(/\./, $addr)), 2);
-		}
-	}
-	if ($host eq "") { $host = $addr; }
+    if ($get_remotehost) {
+        if ( $host eq "" || $host eq "$addr" ) {
+            $host = gethostbyaddr( pack( "C4", split( /\./, $addr ) ), 2 );
+        }
+    }
+    if ( $host eq "" ) { $host = $addr; }
 }
-
-
 
 #------------#
 #  編集画面  #
 #------------#
 sub rest {
-	if ($in{'action'} eq 'admin' && (crypt($in{'pass'}, substr($password, $salt, 2) ) ne $password)) {
-		&error("パスワードが違います",'NOLOCK');
-	}
+    if ($in{'action'} eq 'admin'
+        && (
+            crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password )
+        )
+    {
+        &error( "パスワードが違います", 'NOLOCK' );
+    }
 
-	#open(LOG,$logfile) || &error("Can't open $logfile");
-	sysopen(LOG,$logfile,O_RDONLY) || &error("Can't open $logfile");
-	@lines = <LOG>;
-	close(LOG);
-	foreach $buf(@lines){ utf8::decode($buf) };
+    #open(LOG,$logfile) || &error("Can't open $logfile");
+    sysopen( LOG, $logfile, O_RDONLY ) || &error("Can't open $logfile");
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-	shift(@lines);
+    shift(@lines);
 
-	# 親記事のみの配列データを作成
-	@new = ();
-	foreach $line (@lines) {
-		local($num,$k,$date,$name,
-			$email,$sub,$com,$url,$host,$pw) = split(/<>/,$line);
+    # 親記事のみの配列データを作成
+    @new = ();
+    foreach $line (@lines) {
+        local ( $num, $k, $date, $name, $email, $sub, $com, $url, $host, $pw )
+            = split( /<>/, $line );
 
-		# RES記事を外す
-		if ($k eq "") { push(@new,$line); }
-	}
+        # RES記事を外す
+        if ( $k eq "" ) { push( @new, $line ); }
+    }
 
-	@lines = reverse(@lines);
+    @lines = reverse(@lines);
 
-	&header;
-	print "[<a href=\"$script?cnt=no\">掲示板へ戻る</a>]\n";
-	print "<table width=100%><tr><th bgcolor=\"#0000A0\">\n";
-	print "<font color=\"#FFFFFF\">コメント編集画面</font></th></tr></table>\n";
-	print "<P><center>\n";
-	print "<table border=0 cellpadding=5><tr>\n";
-	print "<td bgcolor=\"$tbl_color\">\n";
+    &header;
+    print "[<a href=\"$script?cnt=no\">掲示板へ戻る</a>]\n";
+    print "<table width=100%><tr><th bgcolor=\"#0000A0\">\n";
+    print "<font color=\"#FFFFFF\">コメント編集画面</font></th></tr></table>\n";
+    print "<P><center>\n";
+    print "<table border=0 cellpadding=5><tr>\n";
+    print "<td bgcolor=\"$tbl_color\">\n";
 
-	if ($in{'action'} eq '') {
-		print "■投稿時に記入した「削除キー」により、記事を編集します。<br>\n";
-	}
+    if ( $in{'action'} eq '' ) {
+        print "■投稿時に記入した「削除キー」により、記事を編集します。<br>\n";
+    }
 
-	print "■編集したい記事のチェックボックスにチェックを入れ、下記フォームに「削除キー」を入力してください。<br>\n";
-	print "</td></tr></table><P>\n";
-	print "<form action=\"$script\" method=$method>\n";
-	if ($in{'ds'}) {
-	print "<input type=hidden name=ds value='on'>\n";
-	}
+    print "■編集したい記事のチェックボックスにチェックを入れ、下記フォームに「削除キー」を入力してください。<br>\n";
+    print "</td></tr></table><P>\n";
+    print "<form action=\"$script\" method=$method>\n";
+    if ( $in{'ds'} ) {
+        print "<input type=hidden name=ds value='on'>\n";
+    }
 
-		print "<input type=hidden name=mode value=\"usr_rest\">\n";
+    print "<input type=hidden name=mode value=\"usr_rest\">\n";
 
-if ($in{'action'} eq 'admin') {
-		print "<input type=hidden name=action value=\"admin\">\n";
-		print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";}
+    if ( $in{'action'} eq 'admin' ) {
+        print "<input type=hidden name=action value=\"admin\">\n";
+        print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
+    }
 
-if ($in{'action'} ne 'admin') {
-	&get_cookie;
-		print "<b>削除キー</b> <input type=password name=del_key size=10 value='$c_pwd'>\n";
-}
-	print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
-	print "<input type=submit value=\"編集する\"><input type=reset value=\"リセット\">\n";
-	print "<P><table border=1>\n";
-	print "<tr><th>編集</th><th>記事No</th><th>題名</th><th>投稿者</th>";
-	print "<th>投稿日</th><th>コメント</th><th>アイコン</th>\n";
-	
+    if ( $in{'action'} ne 'admin' ) {
+        &get_cookie;
+        print
+            "<b>削除キー</b> <input type=password name=del_key size=10 value='$c_pwd'>\n";
+    }
+    print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
+    print
+        "<input type=submit value=\"編集する\"><input type=reset value=\"リセット\">\n";
+    print "<P><table border=1>\n";
+    print "<tr><th>編集</th><th>記事No</th><th>題名</th><th>投稿者</th>";
+    print "<th>投稿日</th><th>コメント</th><th>アイコン</th>\n";
 
-	if ($in{'action'} eq 'admin') { print "<th>ホスト名</th>\n"; }
+    if ( $in{'action'} eq 'admin' ) { print "<th>ホスト名</th>\n"; }
 
-	print "</tr>\n";
+    print "</tr>\n";
 
-	if ($in{'page'} eq '') { $page = 0; }
-	else { $page = $in{'page'}; }
+    if   ( $in{'page'} eq '' ) { $page = 0; }
+    else                       { $page = $in{'page'}; }
 
-	# 記事数を取得
-	$end_data = @new - 1;
-	$page_end = $page + ($pagelog - 1);
-	if ($page_end >= $end_data) { $page_end = $end_data; }
+    # 記事数を取得
+    $end_data = @new - 1;
+    $page_end = $page + ( $pagelog - 1 );
+    if ( $page_end >= $end_data ) { $page_end = $end_data; }
 
-	foreach ($page .. $page_end) {
-		($num,$k,$date,$name,$email,$sub,
-			$com,$url,$host,$pw,$color,$icon,$d,$d,$img,$si) = split(/<>/,$new[$_]);
+    foreach ( $page .. $page_end ) {
+        (   $num,  $k,  $date,  $name, $email, $sub, $com, $url,
+            $host, $pw, $color, $icon, $d,     $d,   $img, $si
+        ) = split( /<>/, $new[$_] );
 
-		($email,$mail_ex) = split(/>/,$email);
-		if ($email && $mail_ex) { $name="<a href=mailto\:$email>$name</a>"; }
-		if (!$sub) { $sub = "Untitled"; }
-		if($img){$icon="貼\り";}elsif(!$icon){$icon="なし";}
-		elsif($icon =~ /alt=\"(.*)/){$icon = $1;}
+        ( $email, $mail_ex ) = split( />/, $email );
+        if ( $email && $mail_ex ) {
+            $name = "<a href=mailto\:$email>$name</a>";
+        }
+        if    ( !$sub )                 { $sub  = "Untitled"; }
+        if    ($img)                    { $icon = "貼\り"; }
+        elsif ( !$icon )                { $icon = "なし"; }
+        elsif ( $icon =~ /alt=\"(.*)/ ) { $icon = $1; }
 
-		$com =~ s/<br>/ /g;
-		if ($tagkey || $tg_mc) { $com =~ s/</&lt;/g; $com =~ s/>/&gt;/g; }
-		if (length($com) > 60) { $com=substr($com,0,58); $com=$com . '..'; }
+        $com =~ s/<br>/ /g;
+        if ( $tagkey || $tg_mc ) { $com =~ s/</&lt;/g; $com =~ s/>/&gt;/g; }
+        if ( length($com) > 60 ) {
+            $com = substr( $com, 0, 58 );
+            $com = $com . '..';
+        }
 
-			print "<tr><th><input type=radio name=del value=\"$date\"></th>\n";
+        print "<tr><th><input type=radio name=del value=\"$date\"></th>\n";
 
-		print "<th>$num</th><td>$sub</td><td>$name</td>\n";
-		print "<td><small>$date</small></td><td>$com</td><td>$icon</td>\n";
+        print "<th>$num</th><td>$sub</td><td>$name</td>\n";
+        print "<td><small>$date</small></td><td>$com</td><td>$icon</td>\n";
 
-		if ($in{'action'} eq 'admin') { print "<td>$host</td>\n"; }
+        if ( $in{'action'} eq 'admin' ) { print "<td>$host</td>\n"; }
 
-		print "</tr>\n";
+        print "</tr>\n";
 
-		## レスメッセージを表示
-		foreach (@lines) {
-			($rnum,$rk,$rd,$rname,$rem,$rsub,
-				$rcom,$rurl,$rho,$rp,$rc,$ri,$d,$d,$rimg,$rsi) = split(/<>/, $_);
-            if($rimg) {$ri="貼\り";}
-			elsif(!$ri){$ri = "なし";}
-            elsif($ri =~ /alt=\"(.*)/){$ri = $1;}
-			$rcom =~ s/<br>/ /g;
-			if ($tagkey || $tg_mc) { $rcom =~ s/</&lt;/g; $rcom =~ s/>/&gt;/g; }
-			if (length($rcom) > 60) { $rcom=substr($rcom,0,58); $rcom=$rcom . '..'; }
-			if ($num eq "$rk"){
+        ## レスメッセージを表示
+        foreach (@lines) {
+            (   $rnum, $rk, $rd, $rname, $rem, $rsub, $rcom, $rurl,
+                $rho,  $rp, $rc, $ri,    $d,   $d,    $rimg, $rsi
+            ) = split( /<>/, $_ );
+            if    ($rimg)                 { $ri = "貼\り"; }
+            elsif ( !$ri )                { $ri = "なし"; }
+            elsif ( $ri =~ /alt=\"(.*)/ ) { $ri = $1; }
+            $rcom =~ s/<br>/ /g;
+            if ( $tagkey || $tg_mc ) {
+                $rcom =~ s/</&lt;/g;
+                $rcom =~ s/>/&gt;/g;
+            }
+            if ( length($rcom) > 60 ) {
+                $rcom = substr( $rcom, 0, 58 );
+                $rcom = $rcom . '..';
+            }
+            if ( $num eq "$rk" ) {
 
-				print "<tr><th><input type=radio name=del value=\"$rd\"></th>\n";
+                print
+                    "<tr><th><input type=radio name=del value=\"$rd\"></th>\n";
 
-				print "<td colspan=2 align=center><b>$num</b>へのレス</td>\n";
+                print "<td colspan=2 align=center><b>$num</b>へのレス</td>\n";
 
-				($rem,$mail_ex) = split(/>/,$rem);
-				if ($rem && $mail_ex) { $rname="<a href=mailto:$rem>$rname</a>"; }
+                ( $rem, $mail_ex ) = split( />/, $rem );
+                if ( $rem && $mail_ex ) {
+                    $rname = "<a href=mailto:$rem>$rname</a>";
+                }
 
-				print "<td>$rname</td><td><small>$rd</small></td><td>$rcom</td><td>$ri</td>\n";
+                print
+                    "<td>$rname</td><td><small>$rd</small></td><td>$rcom</td><td>$ri</td>\n";
 
-				if ($in{'action'} eq 'admin') { print "<td>$rho</td>\n"; }
+                if ( $in{'action'} eq 'admin' ) { print "<td>$rho</td>\n"; }
 
-				print "</tr>\n";
-			}
-		}
-	}
-	print "</table></form>\n";
-	print "<table border=0 width=100%><tr>\n";
+                print "</tr>\n";
+            }
+        }
+    }
+    print "</table></form>\n";
+    print "<table border=0 width=100%><tr>\n";
 
-	# 改頁処理
-	$next_line = $page_end + 1;
-	$back_line = $page - $pagelog;
+    # 改頁処理
+    $next_line = $page_end + 1;
+    $back_line = $page - $pagelog;
 
-	# 前頁処理
-	if ($back_line >= 0) {
-		print "<td><form method=\"$method\" action=\"$script\">\n";
-		print "<input type=hidden name=page value=\"$back_line\">\n";
-		print "<input type=hidden name=mode value=rest>\n";
-		print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
-		print "<input type=submit value=\"前の親記事 $pagelog 件\">\n";
+    # 前頁処理
+    if ( $back_line >= 0 ) {
+        print "<td><form method=\"$method\" action=\"$script\">\n";
+        print "<input type=hidden name=page value=\"$back_line\">\n";
+        print "<input type=hidden name=mode value=rest>\n";
+        print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
+        print "<input type=submit value=\"前の親記事 $pagelog 件\">\n";
 
-		if ($in{'action'} eq 'admin') {
-		  print "<input type=hidden name=action value=\"admin\">\n";
-		  print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
-		}
+        if ( $in{'action'} eq 'admin' ) {
+            print "<input type=hidden name=action value=\"admin\">\n";
+            print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
+        }
 
-		print "</form></td>\n";	
-	}
+        print "</form></td>\n";
+    }
 
-	# 次頁処理
-	if ($page_end ne $end_data) {
-		print "<td><form method=\"$method\" action=\"$script\">\n";
-		print "<input type=hidden name=page value=\"$next_line\">\n";
-		print "<input type=hidden name=mode value=rest>\n";
-		print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
-		print "<input type=submit value=\"次の親記事 $pagelog 件\">\n";
+    # 次頁処理
+    if ( $page_end ne $end_data ) {
+        print "<td><form method=\"$method\" action=\"$script\">\n";
+        print "<input type=hidden name=page value=\"$next_line\">\n";
+        print "<input type=hidden name=mode value=rest>\n";
+        print "<input type=hidden name=bg_img value=$in{'bg_img'}>\n";
+        print "<input type=submit value=\"次の親記事 $pagelog 件\">\n";
 
-		if ($in{'action'} eq 'admin') {
-		  print "<input type=hidden name=action value=\"admin\">\n";
-		  print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
-		}
+        if ( $in{'action'} eq 'admin' ) {
+            print "<input type=hidden name=action value=\"admin\">\n";
+            print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
+        }
 
-		print "</form></td>\n";
-	}
+        print "</form></td>\n";
+    }
 
-	print "</tr></table><P><hr><P>\n";
-	&footer;
-	exit;
+    print "</tr></table><P><hr><P>\n";
+    &footer;
+    exit;
 }
 
 ## --- ユーザ記事編集フォーム
 sub usr_rest {
-	if ($in{'action'} eq 'admin' && (crypt($in{'pass'}, substr($password, $salt, 2) ) ne $password)) {
-		&error("パスワードが違います",'NOLOCK');
-	} else {
-	if (($in{'del_key'} eq "") && ($in{'action'} ne 'admin')) { &error("削除キーが入力モレです。"); }
-	}
+    if ($in{'action'} eq 'admin'
+        && (
+            crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password )
+        )
+    {
+        &error( "パスワードが違います", 'NOLOCK' );
+    }
+    else {
+        if ( ( $in{'del_key'} eq "" ) && ( $in{'action'} ne 'admin' ) ) {
+            &error("削除キーが入力モレです。");
+        }
+    }
 
-	if ($in{'del'} eq "") { &error("ラジオボタンの選択がありません。"); }
+    if ( $in{'del'} eq "" ) { &error("ラジオボタンの選択がありません。"); }
 
-	# ログを読み込む
-	#open(LOG,"$logfile") || &error("Can't open $logfile");
-	sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile");
-	@lines = <LOG>;
-	close(LOG);
-	foreach $buf(@lines){ utf8::decode($buf) };
+    # ログを読み込む
+    #open(LOG,"$logfile") || &error("Can't open $logfile");
+    sysopen( LOG, "$logfile", O_RDONLY ) || &error("Can't open $logfile");
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-	#open(RL,"$rank_log") || &error("Can't open $rank_log");
-	sysopen(RL,"$rank_log",O_RDONLY) || &error("Can't open $rank_log");
-	@rank = <RL>;
-	close(RL);
-	foreach $buf(@rank){ utf8::decode($buf) };
+    #open(RL,"$rank_log") || &error("Can't open $rank_log");
+    sysopen( RL, "$rank_log", O_RDONLY ) || &error("Can't open $rank_log");
+    @rank = <RL>;
+    close(RL);
+    foreach $buf (@rank) { utf8::decode($buf) }
 
-	foreach $line (@lines) {
-		($num,$k,$dt,$name,$email,$sub,$com,$url,$host,$encode_pwd,$cor,$icon,$ds,$UP,$img,$pixel) = split(/<>/,$line);
+    foreach $line (@lines) {
+        (   $num, $k,   $dt,   $name,       $email, $sub,
+            $com, $url, $host, $encode_pwd, $cor,   $icon,
+            $ds,  $UP,  $img,  $pixel
+        ) = split( /<>/, $line );
 
-$icon =~ s/\" alt=\".*//;
-$com =~ s/<br>/\n/g;
-if($tg_mc){$com = &tg_de("$com");}
+        $icon =~ s/\" alt=\".*//;
+        $com  =~ s/<br>/\n/g;
+        if ($tg_mc) { $com = &tg_de("$com"); }
 
-	if ($in{'del'} eq "$dt") {
-$del_num = $num;
-last;
-}
-	}
+        if ( $in{'del'} eq "$dt" ) {
+            $del_num = $num;
+            last;
+        }
+    }
 
-	if ($del_num eq '') { &error("削除対象記事が見つかりません"); }
-		if (($encode_pwd eq '') && ($in{'action'} ne 'admin')) {
-		&error("削除キーが設定されていません");
-		}
+    if ( $del_num eq '' ) { &error("削除対象記事が見つかりません"); }
+    if ( ( $encode_pwd eq '' ) && ( $in{'action'} ne 'admin' ) ) {
+        &error("削除キーが設定されていません");
+    }
 
-			$cut_name = $name;
-			$cut_name =~ s/＠.*//;
-            $cut_name =~ s/☆.*//;
-	        $cut_name =~ s/@.*//;
-	        $cut_name =~ s/★.*//;
+    $cut_name = $name;
+    $cut_name =~ s/＠.*//;
+    $cut_name =~ s/☆.*//;
+    $cut_name =~ s/@.*//;
+    $cut_name =~ s/★.*//;
 
-			if($pass_mode){
-			foreach(@rank){
-			($d1,$d2,$d3,$d4,$d5,$d6) = split(/<>/,$_);
-			if($cut_name eq "$d1"){$d6 =~ s/\n//;if($d6){$encode_pwd = $d6;}last;}
-			}
-			}
+    if ($pass_mode) {
+        foreach (@rank) {
+            ( $d1, $d2, $d3, $d4, $d5, $d6 ) = split( /<>/, $_ );
+            if ( $cut_name eq "$d1" ) {
+                $d6 =~ s/\n//;
+                if ($d6) { $encode_pwd = $d6; }
+                last;
+            }
+        }
+    }
 
-		$plain_text = $in{'del_key'};
-		$check = &passwd_decode($encode_pwd);
-		if (($check ne 'yes') && ($in{'action'} ne 'admin')) {
-		&error("パスワードが違います");
-		}
+    $plain_text = $in{'del_key'};
+    $check      = &passwd_decode($encode_pwd);
+    if ( ( $check ne 'yes' ) && ( $in{'action'} ne 'admin' ) ) {
+        &error("パスワードが違います");
+    }
 
-	# フォーム長を調整
-	&get_agent;
+    # フォーム長を調整
+    &get_agent;
 
-	# ヘッダを出力
-	&header;
+    # ヘッダを出力
+    &header;
 
-	print "<center>$banner1<P>\n";
+    print "<center>$banner1<P>\n";
 
-	# タイトル部
-	if ($title_gif eq '') {
-		print"<font color=\"$t_color\" size=5 face=\"$t_face\">";
-		print "<b>記事編集</b></font>\n";
-	} else {
-		print "<img src=\"$title_gif\" width=\"$tg_w\" height=\"$tg_h\">\n";
-	}
+    # タイトル部
+    if ( $title_gif eq '' ) {
+        print "<font color=\"$t_color\" size=5 face=\"$t_face\">";
+        print "<b>記事編集</b></font>\n";
+    }
+    else {
+        print "<img src=\"$title_gif\" width=\"$tg_w\" height=\"$tg_h\">\n";
+    }
 
-($email,$m_ex) = split (/>/,$email);
+    ( $email, $m_ex ) = split( />/, $email );
 
-if($m_ex){$m_ex = " checked";}
+    if ($m_ex) { $m_ex = " checked"; }
 
-
-	print <<"EOM";
+    print <<"EOM";
 <form method="$method" action="$script">
 <input type=hidden name=mode value="Reg_usr_rest">
 <input type=hidden name=del value="$in{'del'}">
@@ -2896,32 +3301,35 @@ if($m_ex){$m_ex = " checked";}
 </tr>
 EOM
 
-	if ( $icon_mode && (!$img || ($img =~ /bgm$/))) {
-	
-	&icon_exe;
+    if ( $icon_mode && ( !$img || ( $img =~ /bgm$/ ) ) ) {
 
-	# 管理者アイコンを配列に付加
-	if ($my_icon) {
-		push(@icon1,"$my_gif");
-		push(@icon2,"管理者用");
-	}
+        &icon_exe;
 
-		print "<tr><td nowrap><b>イメージ</b></td><td><select name=icon>\n";
-		$inum = 0;
-		foreach(0 .. $#icon1) {
-			if($_ > 1){++$inum;}
-			if ($icon eq "$icon1[$_]") {
-				print "<option value=\"$icon1[$_]\" selected>$inum:$icon2[$_]\n";
-			} else {
-				print "<option value=\"$icon1[$_]\">$inum:$icon2[$_]\n";
-			}
-		}
-		print "</select> <small>(あなたの萌えイメージ ←謎)</small><INPUT TYPE='button' VALUE='この画像を見る' onClick='upWindow(icon.options[icon.selectedIndex].value); return true'><br>\n";
-	print "[<a href=\"$script?mode=image&bg_img=$in{'bg_img'}\" target='_blank'>画像イメージ参照−開けるな！キケン！（ｗ−[現在のアイコン数$Icon_num]</a>]</td></tr>\n";
-	}
+        # 管理者アイコンを配列に付加
+        if ($my_icon) {
+            push( @icon1, "$my_gif" );
+            push( @icon2, "管理者用" );
+        }
 
+        print "<tr><td nowrap><b>イメージ</b></td><td><select name=icon>\n";
+        $inum = 0;
+        foreach ( 0 .. $#icon1 ) {
+            if ( $_ > 1 ) { ++$inum; }
+            if ( $icon eq "$icon1[$_]" ) {
+                print
+                    "<option value=\"$icon1[$_]\" selected>$inum:$icon2[$_]\n";
+            }
+            else {
+                print "<option value=\"$icon1[$_]\">$inum:$icon2[$_]\n";
+            }
+        }
+        print
+            "</select> <small>(あなたの萌えイメージ ←謎)</small><INPUT TYPE='button' VALUE='この画像を見る' onClick='upWindow(icon.options[icon.selectedIndex].value); return true'><br>\n";
+        print
+            "[<a href=\"$script?mode=image&bg_img=$in{'bg_img'}\" target='_blank'>画像イメージ参照−開けるな！キケン！（ｗ−[現在のアイコン数$Icon_num]</a>]</td></tr>\n";
+    }
 
-print<<"EOM";
+    print <<"EOM";
 <tr>
   <td nowrap>
     <b>文字色</b>
@@ -2929,406 +3337,509 @@ print<<"EOM";
   <td>
 EOM
 
-	if ($cor eq "") { $cor = "$COLORS[0]"; }
-	foreach (@COLORS) {
-		if ($cor eq "$_") {
-			print "<input type=radio name=color value=\"$_\" checked>";
-			print "<font color=$_>■</font>\n";
-		} else {
-			print "<input type=radio name=color value=\"$_\">";
-			print "<font color=$_>■</font>\n";
-		}
-	}
-	print "</td></tr>";
-	if($tg_mc){print "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";}
+    if ( $cor eq "" ) { $cor = "$COLORS[0]"; }
+    foreach (@COLORS) {
+        if ( $cor eq "$_" ) {
+            print "<input type=radio name=color value=\"$_\" checked>";
+            print "<font color=$_>■</font>\n";
+        }
+        else {
+            print "<input type=radio name=color value=\"$_\">";
+            print "<font color=$_>■</font>\n";
+        }
+    }
+    print "</td></tr>";
+    if ($tg_mc) {
+        print
+            "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";
+    }
 
+    if ( $img =~ /bgm$/ ) {
+        $img =~ s/bgm$//;
+        $bgm  = $img;
+        $bgme = "　<a href=$bgm target=_blank><b>貼\りBGM</b></a>";
+        $imps = 1;
+    }
+    elsif ( $img =~ /swf$/ ) { $bgmz = "　<b>貼\りFlash</b></a>"; $impz = 1; }
+    elsif ( $img =~ /cgm$/ ) {
+        $img =~ s/\.([^.]+)\.([^.]*)cgm$//;
+        $pic  = "$img.$1";
+        $bgm  = "$img.$2";
+        $bgme = "　<a href=$bgm target=_blank><b>貼\りBGM</b></a>";
+        $img  = $pic;
+    }
 
-if($img =~ /bgm$/){$img =~ s/bgm$//;$bgm=$img;$bgme="　<a href=$bgm target=_blank><b>貼\りBGM</b></a>";$imps=1;}
-elsif($img =~ /swf$/){ $bgmz="　<b>貼\りFlash</b></a>";$impz=1;}
-elsif($img =~ /cgm$/){
-$img =~ s/\.([^.]+)\.([^.]*)cgm$//;
-$pic = "$img.$1";$bgm = "$img.$2";
-$bgme="　<a href=$bgm target=_blank><b>貼\りBGM</b></a>";
-$img = $pic;
-}
+    if ($bgm) {
+        print
+            "<tr><td nowrap><input type=checkbox name=ch_bgm value=$bgm checked>$bgme
+</td><td>（チェックを外せば削除できます)</td></tr>";
+    }
 
-if($bgm){print"<tr><td nowrap><input type=checkbox name=ch_bgm value=$bgm checked>$bgme
-</td><td>（チェックを外せば削除できます)</td></tr>";}
+    if ($impz) {
+        print
+            "<tr><td nowrap><input type=checkbox name=ch_img value=$img checked>$bgmz
+</td><td>（チェックを外せば削除できます)</td></tr><tr><td colspan=2><embed src=$img width=600 height=480></td></tr>";
+    }
 
-if($impz){print"<tr><td nowrap><input type=checkbox name=ch_img value=$img checked>$bgmz
-</td><td>（チェックを外せば削除できます)</td></tr><tr><td colspan=2><embed src=$img width=600 height=480></td></tr>";}
+    if ( !$imps && $img && !$impz ) {
+        print
+            "<tr><td nowrap><input type=checkbox name=ch_img value=$img checked>　<B>貼\り画像</B>
+</td><td>（チェックを外せば削除できます)</td></tr><tr><td colspan=2><img src=$img></td></tr>";
+    }
 
-if(!$imps && $img &&!$impz){print"<tr><td nowrap><input type=checkbox name=ch_img value=$img checked>　<B>貼\り画像</B>
-</td><td>（チェックを外せば削除できます)</td></tr><tr><td colspan=2><img src=$img></td></tr>";}
+    &d_mode;
+    if ( $in{'action'} eq 'admin' ) {
+        print "<input type=hidden name=action value=\"admin\">\n";
+        print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
+    }
 
-&d_mode;
-		if ($in{'action'} eq 'admin') {
-		  print "<input type=hidden name=action value=\"admin\">\n";
-		  print "<input type=hidden name=pass value=\"$in{'pass'}\">\n";
-		}
+    print "</td></tr></table></form></blockquote><hr>\n";
 
-	print "</td></tr></table></form></blockquote><hr>\n";
-
-	&footer;
-	exit;
+    &footer;
+    exit;
 
 }
 
 ## --- ユーザ記事編集処理
-sub usr_rest2{
-	if ($in{'action'} eq 'admin' && (crypt($in{'pass'}, substr($password, $salt, 2) ) ne $password)) {
-		&error("パスワードが違います",'NOLOCK');
-	} else {
-	if (($in{'del_key'} eq "") && ($in{'action'} ne 'admin')) { &error("削除キーが入力モレです。"); }
-	}
-
-	if ($in{'del'} eq "") { &error("ラジオボタンの選択がありません。"); }
-
-	# ログを読み込む
-	if($fll){
-		foreach (1 .. 10) {
-			unless (-e $lockfile) {last;}
-			sleep(1);
-		}
-	}
-	#open(LOG,"$logfile") || &error("Can't open $logfile");
-	sysopen(LOG,"$logfile",O_RDONLY) || &error("Can't open $logfile");
-	if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-	@lines = <LOG>;
-	close(LOG);
-	foreach $buf(@lines){ utf8::decode($buf) };
-
-	if($fll){
-		foreach (1 .. 10) {
-			unless (-e $rklock) {last;}
-			sleep(1);
-		}
-	}
-	#open(RL,"$rank_log") || &error("Can't open $rank_log");
-	sysopen(RL,"$rank_log",O_RDONLY) || &error("Can't open $rank_log");
-	if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-	@rank = <RL>;
-	close(RL);
-	foreach $buf(@rank){ utf8::decode($buf) };
-
-	# 親記事NO
-	$oya = $lines[0];
-	if ($oya =~ /<>/) {
-		&error("ログが正しくありません。<P><small>\(Petit v2.5以前のログの場合は変換の必要があります\)<\/small>");
-	}
-
-	shift(@lines);
-
-	## 削除キーによる記事編集 ##
-	@new=();
-	foreach $line (@lines) {
-		$dflag = 0;
-		($num,$k,$dt,$dn,$d,$d,$d,$d,$d,$ango,$d,$d,$d,$UP,$dimg,$pixel) = split(/<>/,$line);
-
-		if ($in{'del'} eq "$dt") {
-
-		if (($ango eq '') && ($in{'action'} ne 'admin')) {
-		&error("削除キーが設定されていません");
-		}
-
-			$cut_dn = $dn;
-			$cut_dn =~ s/＠.*//;
-            $cut_dn =~ s/☆.*//;
-	        $cut_dn =~ s/@.*//;
-	        $cut_dn =~ s/★.*//;
-
-			if($pass_mode){
-			foreach(@rank){
-			($d1,$d2,$d3,$d4,$d5,$d6) = split(/<>/,$_);
-			if($cut_dn eq "$d1"){$d6 =~ s/\n//;if($d6){$ango = $d6;}last;}
-			}
-			}
-
-		$plain_text = $in{'del_key'};
-		$check = &passwd_decode($ango);
-		if (($check ne 'yes') && ($in{'action'} ne 'admin')) {
-		&error("パスワードが違います");
-		}
-
-	# 名前とコメントは必須
-	if ($name eq "") { &error("名前が入力されていません"); }
-	if ($comment eq "") { &error("コメントが入力されていません"); }
-
-	# 提供品チェックにチェックが入っているとき
-	if ($up_check eq 'on' && $up_comment eq ""){
-	&error("提供品コメントを入力してください",'NOLOCK');}
-	elsif($up_check eq 'on'){$up_on="up_exist";}
-	if($up_title eq ""){$up_title=$sub;}
-
-	# ホスト名を取得
-	&get_host;
-
-	$del_num = $num;
-
-	$cut_name = $name;
-	$cut_name =~ s/＠.*//;
-    $cut_name =~ s/☆.*//;
-	$cut_name =~ s/@.*//;
-	$cut_name =~ s/★.*//;
-
-
-	## 認証&編集rank
-
-	foreach(@rank){
-	$_ =~ s/\n//;
-	($r_name,$r_cnt,$cg_cnt,$bgm_cnt,$flash_cnt,$res_cnt,$r_pass,$lac,$rest_cnt,$mcr_cnt) = split(/<>/,$_);
-
-	if($r_name eq $cut_name){
-
-	if($pass_mode){
-	if($r_pass){		
-	$plain_text = $in{'del_key'};
-	$check = &passwd_decode($r_pass);
-	if ($check ne 'yes') { &error("$cut_nameさんのパスワードと一致しません"); }
-	$ps_tr = 1;
-	}
-	}
-
-	++$rest_cnt;
-	$new_rank = "$r_name<>$r_cnt<>$cg_cnt<>$bgm_cnt<>$flash_cnt<>$res_cnt<>$r_pass<>$lac<>$rest_cnt<>$mcr_cnt<>\n";
-	push(@new_rank,$new_rank);
-
-	}else{
-	push(@new_rank,"$_\n");
-	}
-
-	}
-
-	&icon_exe;
-
-	if($icon eq "none.gif"){$icon_reg = $icon;}
-	elsif($icon eq "rand.gif"){
-
-	srand;
-
-	if($rd_pri){$ico_rd = int(rand($Icon_num));}
-	else{$ico_rd = int(rand($nm_ico_nm));}
-
-	splice(@icon1,0,2);
-	splice(@icon2,0,2);
-
-	$icon_reg = "$icon1[$ico_rd]\" alt=\"$icon2[$ico_rd]";
-	}
-	else{
-
-	foreach(0 .. $#icon1) {
-
-	if($icon eq $icon1[$_]){
-		if($Inum[$_] =~/pri_ico/){
-		#if($cut_name ne $usr_n[$_]){$ico_err = 1;}
-		$plain_text = $in{'del_key'};
-		$encode_pwd = $usr_p[$_];
-		$check = &passwd_decode($encode_pwd);
-		if ($check ne 'yes') {$ico_err = 1;}
-		if ($in{'action'} eq 'admin' && (crypt($in{'pass'}, substr($password, $salt, 2) ) eq $password)) {$ico_err=0;}
-		if($ps_tr && ($cut_name eq "$usr_n[$_]")) {$ico_err = 0;}
-		if($ico_err){&error("このアイコンは$usr_n[$_]専用です");}
-		}
-
-	$icon_reg = "$icon1[$_]\" alt=\"$icon2[$_]";last;
-	}
-
-	}
-
-	}
-
-	# 時間を取得
-	&get_time;
-
-	if($ImgDir2){$dimg =~ s/^$ImgDir2//;$dimg = "$ImgDir$dimg";}
-
-	# .cgm処理
-	if($dimg =~ /cgm$/){
-	$t_dimg=$dimg;
-	$t_dimg =~ s/\.([^.]+)\.([^.]*)cgm$//;
-	$pic = "$t_dimg.$1";$bgm = "$t_dimg.$2";
-
-	#ログ互換
-	if($bgm =~ /\.$/){$bgm="$t_dimg.bgm";}
-
-#	if(!$in{'ch_img'} && (-e "$pic")){ unlink("$pic");$img_del=1; }
-	if(!$in{'ch_img'} && (-e "$pic")){ $img_del=1; }
-#	if(!$in{'ch_bgm'} && (-e "$bgm")){ unlink("$bgm");$bgm_del=1; }
-	if(!$in{'ch_img'} && (-e "$pic")){ $img_del=1; }
-	if($img_del && $bgm_del){$dimg="";}
-	elsif($img_del){$dimg="$bgm"."bgm";}
-	elsif($bgm_del){$dimg=$pic;}
-
-	}
-
-	# 貼り画像削除
-	elsif(($dimg !~ /bgm$/) && !$in{'ch_img'} && ($dimg) && (-e "$dimg")){
-#        unlink("$dimg");
-        $dimg="";
-        $pixel = "";
+sub usr_rest2 {
+    if ($in{'action'} eq 'admin'
+        && (
+            crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password )
+        )
+    {
+        &error( "パスワードが違います", 'NOLOCK' );
+    }
+    else {
+        if ( ( $in{'del_key'} eq "" ) && ( $in{'action'} ne 'admin' ) ) {
+            &error("削除キーが入力モレです。");
+        }
     }
 
-	# 貼りBGM削除
-	elsif(($dimg =~ /bgm$/) && !$in{'ch_bgm'}){
+    if ( $in{'del'} eq "" ) { &error("ラジオボタンの選択がありません。"); }
 
-	$t_dimg=$dimg;
-	$t_dimg =~ s/bgm$//;		
-	#ログ互換
-	if($t_dimg =~ /\.$/){$t_dimg="$t_dimg"."bgm";}		
-#	if(-e "$t_dimg"){ unlink("$t_dimg");$dimg="";}
-	if(-e "$t_dimg"){ $dimg="";}
+    # ログを読み込む
+    if ($fll) {
+        foreach ( 1 .. 10 ) {
+            unless ( -e $lockfile ) { last; }
+            sleep(1);
+        }
+    }
 
-	}
+    #open(LOG,"$logfile") || &error("Can't open $logfile");
+    sysopen( LOG, "$logfile", O_RDONLY ) || &error("Can't open $logfile");
+    if ( $lockkey == 3 ) { flock( LOG, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗"); }
+    @lines = <LOG>;
+    close(LOG);
+    foreach $buf (@lines) { utf8::decode($buf) }
 
-	if($dimg && $ImgDir2){$dimg =~ s/^$ImgDir//;$dimg = "$ImgDir2$dimg";}
+    if ($fll) {
+        foreach ( 1 .. 10 ) {
+            unless ( -e $rklock ) { last; }
+            sleep(1);
+        }
+    }
 
-	if($in{mail_ex}){$email = "$email\>1";}
+    #open(RL,"$rank_log") || &error("Can't open $rank_log");
+    sysopen( RL, "$rank_log", O_RDONLY ) || &error("Can't open $rank_log");
+    if ( $lockkey == 3 ) { flock( RL, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗"); }
+    @rank = <RL>;
+    close(RL);
+    foreach $buf (@rank) { utf8::decode($buf) }
 
-	if($tg_mc){$comment = &tg_en("$comment");}
-	# ログをフォーマット
-	$line = "$num<>$k<>$date(編集)<>$name<>$email<>$sub<>$comment<>$url<>$host<>$ango<>$color<>$icon_reg<>$in{'Tbl_B'}<>$up_on<>$dimg<>$pixel";
+    # 親記事NO
+    $oya = $lines[0];
+    if ( $oya =~ /<>/ ) {
+        &error(
+            "ログが正しくありません。<P><small>\(Petit v2.5以前のログの場合は変換の必要があります\)<\/small>"
+        );
+    }
 
-	last;	}
+    shift(@lines);
 
-	}
+    ## 削除キーによる記事編集 ##
+    @new = ();
+    foreach $line (@lines) {
+        $dflag = 0;
+        (   $num, $k,    $dt, $dn, $d, $d,  $d,    $d,
+            $d,   $ango, $d,  $d,  $d, $UP, $dimg, $pixel
+        ) = split( /<>/, $line );
 
-	$dbl = 0;srand;
-	foreach(@lines){
-	($num,$k,$dt,$name,$email,$sub,$comment,$url,$host,$ango,$color,$icon_reg,$in{'Tbl_B'},$up_on,$dimg,$pixel) = split(/<>/,$_);
-	if($dt eq "$date(編集)"){++$dbl;if($dbl > 1){$und = int(rand(1000));$_ = "$num<>$k<>$date\:$und\(編集)<>$name<>$email<>$sub<>$comment<>$url<>$host<>$ango<>$color<>$icon_reg<>$in{'Tbl_B'}<>$up_on<>$dimg<>$pixel";}}
-	}
+        if ( $in{'del'} eq "$dt" ) {
 
-	# 親記事NOを付加
-	unshift(@lines,$oya);
-	if ($del_num eq '') { &error("編集対象記事が見つかりません"); }
+            if ( ( $ango eq '' ) && ( $in{'action'} ne 'admin' ) ) {
+                &error("削除キーが設定されていません");
+            }
 
-	## だ〜び〜書きこみ
-	if($fll){
-		&fll("$rklock","$rank_log",@new_rank);
-	}else{
-		#open(RL, "+< $rank_log") || &error("Can't open $rank_log");
-		sysopen(RL, "$rank_log" , O_RDWR ) || &error("Can't open $rank_log");
-		if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-		truncate(RL, 0);
-		seek(RL, 0, 0);
-		print RL @new_rank;
-		close(RL);
-	}
+            $cut_dn = $dn;
+            $cut_dn =~ s/＠.*//;
+            $cut_dn =~ s/☆.*//;
+            $cut_dn =~ s/@.*//;
+            $cut_dn =~ s/★.*//;
 
-	## ログを更新 ##
-	if($fll){
-		&fll("$lockfile","$logfile",@lines);
-	}else{
-		#open(LOG, "+< $logfile") || &error("Can't open $logfile");
-		sysopen(LOG, "$logfile" , O_RDWR ) || &error("Can't open $logfile");
-		if($lockkey == 3){flock(LOG,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-		truncate(LOG, 0);
-		seek(LOG, 0, 0);
-		print LOG @lines;
-		close(LOG);
-	}
+            if ($pass_mode) {
+                foreach (@rank) {
+                    ( $d1, $d2, $d3, $d4, $d5, $d6 ) = split( /<>/, $_ );
+                    if ( $cut_dn eq "$d1" ) {
+                        $d6 =~ s/\n//;
+                        if ($d6) { $ango = $d6; }
+                        last;
+                    }
+                }
+            }
 
+            $plain_text = $in{'del_key'};
+            $check      = &passwd_decode($ango);
+            if ( ( $check ne 'yes' ) && ( $in{'action'} ne 'admin' ) ) {
+                &error("パスワードが違います");
+            }
 
-$in{'ds'} = $in{'Tbl_B'};
+            # 名前とコメントは必須
+            if ( $name eq "" )    { &error("名前が入力されていません"); }
+            if ( $comment eq "" ) { &error("コメントが入力されていません"); }
 
-	# 編集画面にもどる
-	&rest;
+            # 提供品チェックにチェックが入っているとき
+            if ( $up_check eq 'on' && $up_comment eq "" ) {
+                &error( "提供品コメントを入力してください", 'NOLOCK' );
+            }
+            elsif ( $up_check eq 'on' ) { $up_on    = "up_exist"; }
+            if    ( $up_title eq "" )   { $up_title = $sub; }
+
+            # ホスト名を取得
+            &get_host;
+
+            $del_num = $num;
+
+            $cut_name = $name;
+            $cut_name =~ s/＠.*//;
+            $cut_name =~ s/☆.*//;
+            $cut_name =~ s/@.*//;
+            $cut_name =~ s/★.*//;
+
+            ## 認証&編集rank
+
+            foreach (@rank) {
+                $_ =~ s/\n//;
+                (   $r_name,  $r_cnt,  $cg_cnt, $bgm_cnt,  $flash_cnt,
+                    $res_cnt, $r_pass, $lac,    $rest_cnt, $mcr_cnt
+                ) = split( /<>/, $_ );
+
+                if ( $r_name eq $cut_name ) {
+
+                    if ($pass_mode) {
+                        if ($r_pass) {
+                            $plain_text = $in{'del_key'};
+                            $check      = &passwd_decode($r_pass);
+                            if ( $check ne 'yes' ) {
+                                &error("$cut_nameさんのパスワードと一致しません");
+                            }
+                            $ps_tr = 1;
+                        }
+                    }
+
+                    ++$rest_cnt;
+                    $new_rank
+                        = "$r_name<>$r_cnt<>$cg_cnt<>$bgm_cnt<>$flash_cnt<>$res_cnt<>$r_pass<>$lac<>$rest_cnt<>$mcr_cnt<>\n";
+                    push( @new_rank, $new_rank );
+
+                }
+                else {
+                    push( @new_rank, "$_\n" );
+                }
+
+            }
+
+            &icon_exe;
+
+            if    ( $icon eq "none.gif" ) { $icon_reg = $icon; }
+            elsif ( $icon eq "rand.gif" ) {
+
+                srand;
+
+                if   ($rd_pri) { $ico_rd = int( rand($Icon_num) ); }
+                else           { $ico_rd = int( rand($nm_ico_nm) ); }
+
+                splice( @icon1, 0, 2 );
+                splice( @icon2, 0, 2 );
+
+                $icon_reg = "$icon1[$ico_rd]\" alt=\"$icon2[$ico_rd]";
+            }
+            else {
+
+                foreach ( 0 .. $#icon1 ) {
+
+                    if ( $icon eq $icon1[$_] ) {
+                        if ( $Inum[$_] =~ /pri_ico/ ) {
+
+                            #if($cut_name ne $usr_n[$_]){$ico_err = 1;}
+                            $plain_text = $in{'del_key'};
+                            $encode_pwd = $usr_p[$_];
+                            $check      = &passwd_decode($encode_pwd);
+                            if ( $check ne 'yes' ) { $ico_err = 1; }
+                            if ($in{'action'} eq 'admin'
+                                && (crypt( $in{'pass'},
+                                        substr( $password, $salt, 2 ) ) eq
+                                    $password
+                                )
+                                )
+                            {
+                                $ico_err = 0;
+                            }
+                            if ( $ps_tr && ( $cut_name eq "$usr_n[$_]" ) ) {
+                                $ico_err = 0;
+                            }
+                            if ($ico_err) { &error("このアイコンは$usr_n[$_]専用です"); }
+                        }
+
+                        $icon_reg = "$icon1[$_]\" alt=\"$icon2[$_]";
+                        last;
+                    }
+
+                }
+
+            }
+
+            # 時間を取得
+            &get_time;
+
+            if ($ImgDir2) { $dimg =~ s/^$ImgDir2//; $dimg = "$ImgDir$dimg"; }
+
+            # .cgm処理
+            if ( $dimg =~ /cgm$/ ) {
+                $t_dimg = $dimg;
+                $t_dimg =~ s/\.([^.]+)\.([^.]*)cgm$//;
+                $pic = "$t_dimg.$1";
+                $bgm = "$t_dimg.$2";
+
+                #ログ互換
+                if ( $bgm =~ /\.$/ ) { $bgm = "$t_dimg.bgm"; }
+
+             #	if(!$in{'ch_img'} && (-e "$pic")){ unlink("$pic");$img_del=1; }
+                if ( !$in{'ch_img'} && ( -e "$pic" ) ) { $img_del = 1; }
+
+             #	if(!$in{'ch_bgm'} && (-e "$bgm")){ unlink("$bgm");$bgm_del=1; }
+                if    ( !$in{'ch_img'} && ( -e "$pic" ) ) { $img_del = 1; }
+                if    ( $img_del && $bgm_del )            { $dimg    = ""; }
+                elsif ($img_del) { $dimg = "$bgm" . "bgm"; }
+                elsif ($bgm_del) { $dimg = $pic; }
+
+            }
+
+            # 貼り画像削除
+            elsif (( $dimg !~ /bgm$/ )
+                && !$in{'ch_img'}
+                && ($dimg)
+                && ( -e "$dimg" ) )
+            {
+                #        unlink("$dimg");
+                $dimg  = "";
+                $pixel = "";
+            }
+
+            # 貼りBGM削除
+            elsif ( ( $dimg =~ /bgm$/ ) && !$in{'ch_bgm'} ) {
+
+                $t_dimg = $dimg;
+                $t_dimg =~ s/bgm$//;
+
+                #ログ互換
+                if ( $t_dimg =~ /\.$/ ) { $t_dimg = "$t_dimg" . "bgm"; }
+
+                #	if(-e "$t_dimg"){ unlink("$t_dimg");$dimg="";}
+                if ( -e "$t_dimg" ) { $dimg = ""; }
+
+            }
+
+            if ( $dimg && $ImgDir2 ) {
+                $dimg =~ s/^$ImgDir//;
+                $dimg = "$ImgDir2$dimg";
+            }
+
+            if ( $in{mail_ex} ) { $email = "$email\>1"; }
+
+            if ($tg_mc) { $comment = &tg_en("$comment"); }
+
+            # ログをフォーマット
+            $line
+                = "$num<>$k<>$date(編集)<>$name<>$email<>$sub<>$comment<>$url<>$host<>$ango<>$color<>$icon_reg<>$in{'Tbl_B'}<>$up_on<>$dimg<>$pixel";
+
+            last;
+        }
+
+    }
+
+    $dbl = 0;
+    srand;
+    foreach (@lines) {
+        (   $num,         $k,     $dt,      $name,
+            $email,       $sub,   $comment, $url,
+            $host,        $ango,  $color,   $icon_reg,
+            $in{'Tbl_B'}, $up_on, $dimg,    $pixel
+        ) = split( /<>/, $_ );
+        if ( $dt eq "$date(編集)" ) {
+            ++$dbl;
+            if ( $dbl > 1 ) {
+                $und = int( rand(1000) );
+                $_
+                    = "$num<>$k<>$date\:$und\(編集)<>$name<>$email<>$sub<>$comment<>$url<>$host<>$ango<>$color<>$icon_reg<>$in{'Tbl_B'}<>$up_on<>$dimg<>$pixel";
+            }
+        }
+    }
+
+    # 親記事NOを付加
+    unshift( @lines, $oya );
+    if ( $del_num eq '' ) { &error("編集対象記事が見つかりません"); }
+
+    ## だ〜び〜書きこみ
+    if ($fll) {
+        &fll( "$rklock", "$rank_log", @new_rank );
+    }
+    else {
+        #open(RL, "+< $rank_log") || &error("Can't open $rank_log");
+        sysopen( RL, "$rank_log", O_RDWR ) || &error("Can't open $rank_log");
+        if ( $lockkey == 3 ) {
+            flock( RL, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+        }
+        truncate( RL, 0 );
+        seek( RL, 0, 0 );
+        print RL @new_rank;
+        close(RL);
+    }
+
+    ## ログを更新 ##
+    if ($fll) {
+        &fll( "$lockfile", "$logfile", @lines );
+    }
+    else {
+        #open(LOG, "+< $logfile") || &error("Can't open $logfile");
+        sysopen( LOG, "$logfile", O_RDWR ) || &error("Can't open $logfile");
+        if ( $lockkey == 3 ) {
+            flock( LOG, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+        }
+        truncate( LOG, 0 );
+        seek( LOG, 0, 0 );
+        print LOG @lines;
+        close(LOG);
+    }
+
+    $in{'ds'} = $in{'Tbl_B'};
+
+    # 編集画面にもどる
+    &rest;
 }
 
 ## pass認証変更
-sub pass_rest{
+sub pass_rest {
 
-if($in{rest_sel}){
+    if ( $in{rest_sel} ) {
 
-	## 認証
-	if($fll){
-		foreach (1 .. 10) {
-			unless (-e $rklock) {last;}
-			sleep(1);
-		}
-	}
-	#open(RL,"$rank_log") || &error("Can't open $rank_log");
-	sysopen(RL,"$rank_log",O_RDONLY) || &error("Can't open $rank_log");
-	if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-	@rank = <RL>;
-	close(RL);
-	foreach $buf(@rank){ utf8::decode($buf) };
+        ## 認証
+        if ($fll) {
+            foreach ( 1 .. 10 ) {
+                unless ( -e $rklock ) { last; }
+                sleep(1);
+            }
+        }
 
-	$cut_name = $name;
-	$cut_name =~ s/＠.*//;
-    $cut_name =~ s/☆.*//;
-	$cut_name =~ s/@.*//;
-	$cut_name =~ s/★.*//;
+        #open(RL,"$rank_log") || &error("Can't open $rank_log");
+        sysopen( RL, "$rank_log", O_RDONLY )
+            || &error("Can't open $rank_log");
+        if ( $lockkey == 3 ) {
+            flock( RL, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+        }
+        @rank = <RL>;
+        close(RL);
+        foreach $buf (@rank) { utf8::decode($buf) }
 
-	foreach(@rank){
-	$tmp = $_;
-	$tmp =~ s/\n//;
-	($r_name,$r_cnt,$cg_cnt,$bgm_cnt,$flash_cnt,$res_cnt,$r_pass,$la,$rest_cnt,$mcr_cnt) = split(/<>/,$tmp);
+        $cut_name = $name;
+        $cut_name =~ s/＠.*//;
+        $cut_name =~ s/☆.*//;
+        $cut_name =~ s/@.*//;
+        $cut_name =~ s/★.*//;
 
-	if($r_name eq $cut_name){
-	$usr_ck = 1;
+        foreach (@rank) {
+            $tmp = $_;
+            $tmp =~ s/\n//;
+            (   $r_name,  $r_cnt,  $cg_cnt, $bgm_cnt,  $flash_cnt,
+                $res_cnt, $r_pass, $la,     $rest_cnt, $mcr_cnt
+            ) = split( /<>/, $tmp );
 
-	if($r_pass){		
-	$plain_text = $in{'pwd'};
-	$check = &passwd_decode($r_pass);
-	if ($check ne 'yes') { &error("$cut_nameさんのパスワードと一致しません"); }
-	}
+            if ( $r_name eq $cut_name ) {
+                $usr_ck = 1;
 
-		if($in{rest_sel} eq "pass_del"){
-		$ex_msg = "貼\り逃げだ〜び〜のお名前・認証passが削除されました";$_ = "";last;
-		}else{
-		if(!$in{ch_pwd}){&error("パスワードが記入されてません");}
-		elsif($in{ch_pwd} ne $in{ch_pwd2}){&error("パスワードの入力ミスです");}
+                if ($r_pass) {
+                    $plain_text = $in{'pwd'};
+                    $check      = &passwd_decode($r_pass);
+                    if ( $check ne 'yes' ) {
+                        &error("$cut_nameさんのパスワードと一致しません");
+                    }
+                }
 
-			else{
-			&passwd_encode($in{ch_pwd});
-			$_ = "$r_name<>$r_cnt<>$cg_cnt<>$bgm_cnt<>$flash_cnt<>$res_cnt<>$ango<>$la<>$rest_cnt<>$mcr_cnt<>\n";
-			}
+                if ( $in{rest_sel} eq "pass_del" ) {
+                    $ex_msg = "貼\り逃げだ〜び〜のお名前・認証passが削除されました";
+                    $_      = "";
+                    last;
+                }
+                else {
+                    if    ( !$in{ch_pwd} ) { &error("パスワードが記入されてません"); }
+                    elsif ( $in{ch_pwd} ne $in{ch_pwd2} ) {
+                        &error("パスワードの入力ミスです");
+                    }
 
-		$ex_msg = "認証passは変更されました";last;
-		}
+                    else {
+                        &passwd_encode( $in{ch_pwd} );
+                        $_
+                            = "$r_name<>$r_cnt<>$cg_cnt<>$bgm_cnt<>$flash_cnt<>$res_cnt<>$ango<>$la<>$rest_cnt<>$mcr_cnt<>\n";
+                    }
 
-	}
+                    $ex_msg = "認証passは変更されました";
+                    last;
+                }
 
-	}
+            }
 
-if(!$usr_ck){&error("対象となるお名前がありません");}
-if($fll){
-	&fll("$rklock","$rank_log",@rank);
-}else{
-	#open(RL, "+< $rank_log") || &error("Can't open $rank_log");
-	sysopen(RL, "$rank_log" , O_RDWR ) || &error("Can't open $rank_log");
-	if($lockkey == 3){flock(RL,2) || &error("filelock 失ヽ(´ー｀)ノ敗");}
-	truncate(RL, 0);
-	seek(RL, 0, 0);
-	print RL @rank;
-	close(RL);
-}
+        }
 
-&get_cookie;
+        if ( !$usr_ck ) { &error("対象となるお名前がありません"); }
+        if ($fll) {
+            &fll( "$rklock", "$rank_log", @rank );
+        }
+        else {
+            #open(RL, "+< $rank_log") || &error("Can't open $rank_log");
+            sysopen( RL, "$rank_log", O_RDWR )
+                || &error("Can't open $rank_log");
+            if ( $lockkey == 3 ) {
+                flock( RL, 2 ) || &error("filelock 失ヽ(´ー｀)ノ敗");
+            }
+            truncate( RL, 0 );
+            seek( RL, 0, 0 );
+            print RL @rank;
+            close(RL);
+        }
 
-$name = $c_name;
-$email = $c_email;
-$url = $c_url;
-$pwd = $in{ch_pwd};
-$icon = $c_icon;
-$color = $c_color;
-$in{mail_ex} = $c_m_ex;
+        &get_cookie;
 
-&set_cookie;
+        $name        = $c_name;
+        $email       = $c_email;
+        $url         = $c_url;
+        $pwd         = $in{ch_pwd};
+        $icon        = $c_icon;
+        $color       = $c_color;
+        $in{mail_ex} = $c_m_ex;
 
-&header;
-print <<"EOM";
+        &set_cookie;
+
+        &header;
+        print <<"EOM";
 [<a href=\"$script?cnt=no\">掲示板へ戻る</a>]<br><br><br>
 <center><b><font color=blue face=\"$t_face\" size=+2>$ex_msg</font></b></font></center><br><br><br>
 EOM
-&footer;
-exit;
-}
+        &footer;
+        exit;
+    }
 
-&get_cookie;
-&header;
-print <<"EOM";
+    &get_cookie;
+    &header;
+    print <<"EOM";
 [<a href=\"$script?cnt=no\">掲示板へ戻る</a>]<br>
 <center><font color=\"$t_color\" size=6 face=\"$t_face\"><b><SPAN>認証pass変更・だ〜び〜削除</SPAN></b></font></center><br>
 <form method="POST" action="$script">
@@ -3352,17 +3863,17 @@ print <<"EOM";
 <center><input type=submit name=pre_ch value=OK></center>
 </td></tr></table>
 EOM
-&footer;
-exit;
+    &footer;
+    exit;
 }
 
 #--- 管理者パスワード登録＆暗号化 --------------------------------#
 sub password {
-  $psold = $in{'password_old'};
-  $pas1 = $in{'password'};
-  $pas2 = $in{'password2'};
-  
-  print <<"_HTML_";
+    $psold = $in{'password_old'};
+    $pas1  = $in{'password'};
+    $pas2  = $in{'password2'};
+
+    print <<"_HTML_";
 Content-type: text/html
 
 <!doctype html>
@@ -3374,36 +3885,46 @@ Content-type: text/html
 $body
 <H1>管理者パスワードの設定\／変更画面</H1>
 _HTML_
-  if ($start2 == 1 && $pas1 eq '') {
-    print "管理者パスワードをこのページで設定\します。<P>\n";
-  } elsif ($pas1 =~ /\W/) {
-    print "<FONT COLOR=red>新パスワードに英数字以外の文字が含まれています。</FONT><P>\n";
-  } elsif ( $pas1 ne '' && $pas1 ne $pas2 ){
-    print "<FONT COLOR=red>確認のために入力された新パスワードが一致しません。</FONT><P>\n";
-  } elsif ( $start2 != 1 && $psold eq '' ) {
-    print "<FONT COLOR=red>旧パスワードも入力して下さい。</FONT><P>\n";
-  } elsif ( $start2 != 1 && (crypt($psold, substr($password, $salt, 2) ) ne $password) ){
-    print "<FONT COLOR=red>旧パスワードが認証されませんでした。</FONT><P>\n";
-  } else {
-    $now = time;
-    ($p1, $p2) = unpack("C2", $now);
-    $wk = $now / (60 * 60 * 24 * 7) + $p1 + $p2 - 8;
-    @saltset = ('a'..'z', 'A'..'Z', '0'..'9', '.', '/');
-    $nsalt = $saltset[$wk % 64] . $saltset[$now % 64];
-    $pwd = crypt($in{'password'}, $nsalt);
+    if ( $start2 == 1 && $pas1 eq '' ) {
+        print "管理者パスワードをこのページで設定\します。<P>\n";
+    }
+    elsif ( $pas1 =~ /\W/ ) {
+        print "<FONT COLOR=red>新パスワードに英数字以外の文字が含まれています。</FONT><P>\n";
+    }
+    elsif ( $pas1 ne '' && $pas1 ne $pas2 ) {
+        print "<FONT COLOR=red>確認のために入力された新パスワードが一致しません。</FONT><P>\n";
+    }
+    elsif ( $start2 != 1 && $psold eq '' ) {
+        print "<FONT COLOR=red>旧パスワードも入力して下さい。</FONT><P>\n";
+    }
+    elsif ( $start2 != 1
+        && ( crypt( $psold, substr( $password, $salt, 2 ) ) ne $password ) )
+    {
+        print "<FONT COLOR=red>旧パスワードが認証されませんでした。</FONT><P>\n";
+    }
+    else {
+        $now = time;
+        ( $p1, $p2 ) = unpack( "C2", $now );
+        $wk      = $now / ( 60 * 60 * 24 * 7 ) + $p1 + $p2 - 8;
+        @saltset = ( 'a' .. 'z', 'A' .. 'Z', '0' .. '9', '.', '/' );
+        $nsalt   = $saltset[ $wk % 64 ] . $saltset[ $now % 64 ];
+        $pwd     = crypt( $in{'password'}, $nsalt );
 
-    #if ( !open(DB,">$passfile") ) { &error(0,__LINE__,__FILE__); }
-    sysopen(DB,"$passfile" ,O_WRONLY | O_TRUNC | O_CREAT ) || &error(0,__LINE__,__FILE__);
-    print DB "crypt_password:$pwd\n";
-    close(DB);
-    print "<FONT COLOR=blue SIZE=+3>管理者パスワードが設定\されました。<BR><A HREF='$script'>[ＮＥＸＴ]</A>をクリックして下さい。</FONT><P>再度変更する場合は下記フォームで再入力しなおして下さい。<P><br>従来の萌え板のログを引き継ぐ方はまずは管理画面のランクログ変換をしてください<br>新規で使うかたはこのままで大丈夫です\n";
-  }
-  print "<FORM method=\"POST\" action=\"$script?pas\">\n";
-  print "<INPUT type=\"hidden\" name=\"papost\" value=\"pcode\">\n";
-  if ($start2 != 1) {
-    print "旧パスワード <INPUT type=\"password\" name=\"password_old\" size=\"8\" maxlength=\"8\"><BR>\n";
-  }
-  print <<"_HTML_";
+        #if ( !open(DB,">$passfile") ) { &error(0,__LINE__,__FILE__); }
+        sysopen( DB, "$passfile", O_WRONLY | O_TRUNC | O_CREAT )
+            || &error( 0, __LINE__, __FILE__ );
+        print DB "crypt_password:$pwd\n";
+        close(DB);
+        print
+            "<FONT COLOR=blue SIZE=+3>管理者パスワードが設定\されました。<BR><A HREF='$script'>[ＮＥＸＴ]</A>をクリックして下さい。</FONT><P>再度変更する場合は下記フォームで再入力しなおして下さい。<P><br>従来の萌え板のログを引き継ぐ方はまずは管理画面のランクログ変換をしてください<br>新規で使うかたはこのままで大丈夫です\n";
+    }
+    print "<FORM method=\"POST\" action=\"$script?pas\">\n";
+    print "<INPUT type=\"hidden\" name=\"papost\" value=\"pcode\">\n";
+    if ( $start2 != 1 ) {
+        print
+            "旧パスワード <INPUT type=\"password\" name=\"password_old\" size=\"8\" maxlength=\"8\"><BR>\n";
+    }
+    print <<"_HTML_";
 新パスワード <INPUT type="password" name="password" size="8" maxlength="8">（半角英数８文字以内）<BR>
 新パスワード <INPUT type="password" name="password2" size="8" maxlength="8">（確認のため上と同じパスをもう一度）<P>
 <INPUT type="submit" value="     登録     ">
@@ -3411,13 +3932,13 @@ _HTML_
 </BODY>
 </HTML>
 _HTML_
-  exit;
+    exit;
 }
 
-sub d_mode{
-if ($in{'ds'} || $ds) {
-if ($ds) {$dark_side = ' checked';}
-	print <<"_HTML_";
+sub d_mode {
+    if ( $in{'ds'} || $ds ) {
+        if ($ds) { $dark_side = ' checked'; }
+        print <<"_HTML_";
 <tr>
   <td nowrap>
     <b>だ〜くさいど</b>
@@ -3427,33 +3948,32 @@ if ($ds) {$dark_side = ' checked';}
   </td>
 </tr>
 _HTML_
-}
+    }
 }
 
 ## 新規投稿
 sub new_topic {
 
-	# クッキーを取得
-	&get_cookie;
+    # クッキーを取得
+    &get_cookie;
 
-	# フォーム長を調整
-	&get_agent;
-if($c_m_ex){$c_m_ex = " checked";}
-if($bgm_up){
-$max_dat=int($cgi_lib'maxdata/1024);
-$bgm_ti="・BGM貼\り";
-$bgm_form= <<"EOM";
+    # フォーム長を調整
+    &get_agent;
+    if ($c_m_ex) { $c_m_ex = " checked"; }
+    if ($bgm_up) {
+        $max_dat  = int( $cgi_lib'maxdata / 1024 );
+        $bgm_ti   = "・BGM貼\り";
+        $bgm_form = <<"EOM";
 <tr><td nowrap><b>貼\りBGM</b></td>
   <td nowrap>
   <input type=file name=upbgm size="$nam_wid"><span>　</span>wav,mid,mp3,asf,wma $max_dat KBまで（貼りたい人だけ）
 </td>
 </tr>
 EOM
-}
+    }
 
-
-&header;
-print <<EOM;
+    &header;
+    print <<EOM;
 <center><font color=\"$t_color\" size=6 face=\"$t_face\"><b><SPAN>新規かきこも〜ど♪</SPAN></b></font></center><br>
 <form method="POST" action="$script" enctype=multipart/form-data target=_parent>
 <input type=hidden name=mode value="msg">
@@ -3489,86 +4009,96 @@ $bgm_form
 </tr>
 EOM
 
+    if ($icon_mode) {
 
+        &icon_exe;
 
-	if ($icon_mode) {
+        # 管理者アイコンを配列に付加
+        if ($my_icon) {
+            push( @icon1, "$my_gif" );
+            push( @icon2, "管理者用" );
+        }
 
-		&icon_exe;
+        print "<tr><td nowrap><b>イメージ</b></td><td><select name=icon>\n";
+        $inum = 0;
+        foreach ( 0 .. $#icon1 ) {
+            if ( $_ > 1 ) { ++$inum; }
+            if ( $c_icon eq "$icon1[$_]" ) {
+                print
+                    "<option value=\"$icon1[$_]\" selected>$inum:$icon2[$_]\n";
+            }
+            else {
+                print "<option value=\"$icon1[$_]\">$inum:$icon2[$_]\n";
+            }
+        }
+        print
+            "</select> <small>(あなたの萌えキャラ（笑）を選択して下さい♪)</small><INPUT TYPE='button' VALUE='この画像を見る' onClick='upWindow(icon.options[icon.selectedIndex].value); return true'><br>\n";
+        print
+            "[<a href=\"$script?mode=image&bg_img=$in{'bg_img'}\" target='_blank'>画像イメージ参照−開けるな！キケン！（ｗ−[現在のアイコン数$Icon_num]</a>]</td></tr>\n";
+    }
 
-	# 管理者アイコンを配列に付加
-	if ($my_icon) {
-		push(@icon1,"$my_gif");
-		push(@icon2,"管理者用");
-	}
+    print "<tr><td nowrap><b>削除キー</b></td>\n";
+    print
+        "<td><input type=password name=pwd size=8 maxlength=8 value=\"$c_pwd\">\n";
+    print "<small>(自分の記事を削除時に使用。英数字で8文字以内)</small></td></tr>\n";
+    print "<tr><td colspan=2><b>※ 最初に投稿をしたときの削除キーと違うと投稿ができません</b></td></tr>";
+    print "<tr><td nowrap><b>文字色</b></td><td>\n";
 
-		print "<tr><td nowrap><b>イメージ</b></td><td><select name=icon>\n";
-		$inum = 0;
-		foreach(0 .. $#icon1) {
-			if($_ > 1){++$inum;}
-			if ($c_icon eq "$icon1[$_]") {
-				print "<option value=\"$icon1[$_]\" selected>$inum:$icon2[$_]\n";			   } else {
-				print "<option value=\"$icon1[$_]\">$inum:$icon2[$_]\n";
-			}
-		}
-	print "</select> <small>(あなたの萌えキャラ（笑）を選択して下さい♪)</small><INPUT TYPE='button' VALUE='この画像を見る' onClick='upWindow(icon.options[icon.selectedIndex].value); return true'><br>\n";
-	print "[<a href=\"$script?mode=image&bg_img=$in{'bg_img'}\" target='_blank'>画像イメージ参照−開けるな！キケン！（ｗ−[現在のアイコン数$Icon_num]</a>]</td></tr>\n";
-	}
+    # クッキーの色情報がない場合
+    if ( $c_color eq "" ) { $c_color = $COLORS[0]; }
 
-	print "<tr><td nowrap><b>削除キー</b></td>\n";
-	print "<td><input type=password name=pwd size=8 maxlength=8 value=\"$c_pwd\">\n";
-	print "<small>(自分の記事を削除時に使用。英数字で8文字以内)</small></td></tr>\n";
-	print "<tr><td colspan=2><b>※ 最初に投稿をしたときの削除キーと違うと投稿ができません</b></td></tr>";
-	print "<tr><td nowrap><b>文字色</b></td><td>\n";
+    foreach ( 0 .. $#COLORS ) {
+        if ( $c_color eq "$COLORS[$_]" ) {
+            print
+                "<input type=radio name=color value=\"$COLORS[$_]\" checked> ";
+            print "<font color=\"$COLORS[$_]\">■</font>\n";
+        }
+        else {
+            print "<input type=radio name=color value=\"$COLORS[$_]\"> ";
+            print "<font color=\"$COLORS[$_]\">■</font>\n";
+        }
+    }
+    print "</td></tr>";
+    if ($tg_mc) {
+        print
+            "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";
+    }
 
-	# クッキーの色情報がない場合
-	if ($c_color eq "") { $c_color = $COLORS[0]; }
+    &d_mode;
 
-	foreach (0 .. $#COLORS) {
-		if ($c_color eq "$COLORS[$_]") {
-			print "<input type=radio name=color value=\"$COLORS[$_]\" checked> ";
-			print "<font color=\"$COLORS[$_]\">■</font>\n";
-		} else {
-			print "<input type=radio name=color value=\"$COLORS[$_]\"> ";
-			print "<font color=\"$COLORS[$_]\">■</font>\n";
-		}
-	}
-	print "</td></tr>";
-	if($tg_mc){print "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";}
-
-&d_mode;
-
-print "</td></tr></table></form></blockquote><hr>\n";
-&footer;
-exit;}
+    print "</td></tr></table></form></blockquote><hr>\n";
+    &footer;
+    exit;
+}
 
 ## 画像はっつけ投稿フォーム
 sub gazou_topic {
 
-$max_dat=int($cgi_lib'maxdata/1024);
-	# クッキーを取得
-	&get_cookie;
+    $max_dat = int( $cgi_lib'maxdata / 1024 );
 
-	# フォーム長を調整
-	&get_agent;
+    # クッキーを取得
+    &get_cookie;
 
-if($c_m_ex){$c_m_ex = " checked";}
-$mx_ex="<span>　</span>jpg,gif,png $max_dat KBまで";
+    # フォーム長を調整
+    &get_agent;
 
-if($bgm_up){
-$mx_ex="<span>　</span>jpg,gif,png";
-$bgm_ti="+BGM";
-$bgm_form= <<"EOM";
+    if ($c_m_ex) { $c_m_ex = " checked"; }
+    $mx_ex = "<span>　</span>jpg,gif,png $max_dat KBまで";
+
+    if ($bgm_up) {
+        $mx_ex    = "<span>　</span>jpg,gif,png";
+        $bgm_ti   = "+BGM";
+        $bgm_form = <<"EOM";
 <tr><td nowrap><b>貼\りBGM</b></td>
   <td nowrap>
   <input type=file name=upbgm size="$nam_wid"><span>　</span>wav,mid,mp3,asf,wma 画像と合わせて $max_dat KBまで（貼りたい人だけ）
 </td>
 </tr>
 EOM
-}
+    }
 
-
-&header;
-print <<EOM;
+    &header;
+    print <<EOM;
 <center><font color=\"$t_color\" size=6 face=\"$t_face\"><b><SPAN>画像$bgm_tiはっつけモード</SPAN></b></font></center><br>
 <form method="POST" action="$script" enctype=multipart/form-data target=_parent>
 <input type=hidden name=mode value="msg">
@@ -3610,44 +4140,52 @@ $bgm_form
 </tr>
 <input type=hidden name=icon value=$c_icon>
 EOM
-	print "<tr><td nowrap><b>削除キー</b></td>\n";
-	print "<td><input type=password name=pwd size=8 maxlength=8 value=\"$c_pwd\">\n";
-	print "<small>(自分の記事を削除時に使用。英数字で8文字以内)</small></td></tr>\n";
-	print "<tr><td colspan=2><b>※ 最初に投稿をしたときの削除キーと違うと投稿ができません</b></td></tr>";
-	print "<tr><td nowrap><b>文字色</b></td><td>\n";
+    print "<tr><td nowrap><b>削除キー</b></td>\n";
+    print
+        "<td><input type=password name=pwd size=8 maxlength=8 value=\"$c_pwd\">\n";
+    print "<small>(自分の記事を削除時に使用。英数字で8文字以内)</small></td></tr>\n";
+    print "<tr><td colspan=2><b>※ 最初に投稿をしたときの削除キーと違うと投稿ができません</b></td></tr>";
+    print "<tr><td nowrap><b>文字色</b></td><td>\n";
 
-	# クッキーの色情報がない場合
-	if ($c_color eq "") { $c_color = $COLORS[0]; }
+    # クッキーの色情報がない場合
+    if ( $c_color eq "" ) { $c_color = $COLORS[0]; }
 
-	foreach (0 .. $#COLORS) {
-		if ($c_color eq "$COLORS[$_]") {
-			print "<input type=radio name=color value=\"$COLORS[$_]\" checked> ";
-			print "<font color=\"$COLORS[$_]\">■</font>\n";
-		} else {
-			print "<input type=radio name=color value=\"$COLORS[$_]\"> ";
-			print "<font color=\"$COLORS[$_]\">■</font>\n";
-		}
-	}
-	print "</td></tr>";
-	if($tg_mc){print "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";}
-&d_mode;
+    foreach ( 0 .. $#COLORS ) {
+        if ( $c_color eq "$COLORS[$_]" ) {
+            print
+                "<input type=radio name=color value=\"$COLORS[$_]\" checked> ";
+            print "<font color=\"$COLORS[$_]\">■</font>\n";
+        }
+        else {
+            print "<input type=radio name=color value=\"$COLORS[$_]\"> ";
+            print "<font color=\"$COLORS[$_]\">■</font>\n";
+        }
+    }
+    print "</td></tr>";
+    if ($tg_mc) {
+        print
+            "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";
+    }
+    &d_mode;
 
-print "</td></tr></table></form></blockquote><hr>\n";
-&footer;
-exit;}
+    print "</td></tr></table></form></blockquote><hr>\n";
+    &footer;
+    exit;
+}
 
 ## Flash投稿
 sub flash_topic {
 
-	# クッキーを取得
-	&get_cookie;
+    # クッキーを取得
+    &get_cookie;
 
-	# フォーム長を調整
-	&get_agent;
-if($c_m_ex){$c_m_ex = " checked";}
-$max_dat=int($cgi_lib'maxdata/1024);
-#'
-$bgm_form= <<"EOM";
+    # フォーム長を調整
+    &get_agent;
+    if ($c_m_ex) { $c_m_ex = " checked"; }
+    $max_dat = int( $cgi_lib'maxdata / 1024 );
+
+    #'
+    $bgm_form = <<"EOM";
 <tr><td nowrap><b>貼\りFlash</b></td>
   <td nowrap>
   <input type=file name=upflash size="$nam_wid"><span>　</span>swfファイル $max_dat KBまで
@@ -3655,10 +4193,8 @@ $bgm_form= <<"EOM";
 </tr>
 EOM
 
-
-
-&header;
-print <<EOM;
+    &header;
+    print <<EOM;
 <center><font color=\"$t_color\" size=6 face=\"$t_face\"><b><SPAN>Flashはっつけも〜ど♪</SPAN></b></font></center><br>
 <form method="POST" action="$script" enctype=multipart/form-data target=_parent>
 <input type=hidden name=mode value="msg">
@@ -3694,175 +4230,206 @@ $bgm_form
 </tr>
 <input type=hidden name=icon value=$c_icon>
 EOM
-	print "<tr><td nowrap><b>削除キー</b></td>\n";
-	print "<td><input type=password name=pwd size=8 maxlength=8 value=\"$c_pwd\">\n";
-	print "<small>(自分の記事を削除時に使用。英数字で8文字以内)</small></td></tr>\n";
-	print "<tr><td colspan=2><b>※ 最初に投稿をしたときの削除キーと違うと投稿ができません</b></td></tr>";
-	print "<tr><td nowrap><b>文字色</b></td><td>\n";
+    print "<tr><td nowrap><b>削除キー</b></td>\n";
+    print
+        "<td><input type=password name=pwd size=8 maxlength=8 value=\"$c_pwd\">\n";
+    print "<small>(自分の記事を削除時に使用。英数字で8文字以内)</small></td></tr>\n";
+    print "<tr><td colspan=2><b>※ 最初に投稿をしたときの削除キーと違うと投稿ができません</b></td></tr>";
+    print "<tr><td nowrap><b>文字色</b></td><td>\n";
 
-	# クッキーの色情報がない場合
-	if ($c_color eq "") { $c_color = $COLORS[0]; }
+    # クッキーの色情報がない場合
+    if ( $c_color eq "" ) { $c_color = $COLORS[0]; }
 
-	foreach (0 .. $#COLORS) {
-		if ($c_color eq "$COLORS[$_]") {
-			print "<input type=radio name=color value=\"$COLORS[$_]\" checked> ";
-			print "<font color=\"$COLORS[$_]\">■</font>\n";
-		} else {
-			print "<input type=radio name=color value=\"$COLORS[$_]\"> ";
-			print "<font color=\"$COLORS[$_]\">■</font>\n";
-		}
-	}
-	print "</td></tr>";
-	if($tg_mc){print "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";}
+    foreach ( 0 .. $#COLORS ) {
+        if ( $c_color eq "$COLORS[$_]" ) {
+            print
+                "<input type=radio name=color value=\"$COLORS[$_]\" checked> ";
+            print "<font color=\"$COLORS[$_]\">■</font>\n";
+        }
+        else {
+            print "<input type=radio name=color value=\"$COLORS[$_]\"> ";
+            print "<font color=\"$COLORS[$_]\">■</font>\n";
+        }
+    }
+    print "</td></tr>";
+    if ($tg_mc) {
+        print
+            "<tr><td colspan=2><a href=\"$script?mode=mc_ex&bg_img=$bg_img\" target=_blank><b>マクロ説明</b></a></td></tr>";
+    }
 
-&d_mode;
+    &d_mode;
 
-print "</td></tr></table></form></blockquote><hr>\n";
-&footer;
-exit;}
+    print "</td></tr></table></form></blockquote><hr>\n";
+    &footer;
+    exit;
+}
 
 ## 以下KENTさんの ClipBoard から流用
 
 sub UpFile {
-	# 画像処理
-	$macbin=0;
-	foreach (@in) {
-		if($upf_f && $t_f){$dm_f=1;}elsif($_ =~ /(.*)Content-type:(.*)\/(.*)/i) { $tail=$3;$t_f=1; }
-		if($upf_f && $f_f){$dm_f=1;}elsif($_ =~ /(.*)filename=(.*)/i) { $fname=$2;$f_f=1; }
-		if ($_ =~ /application\/x-macbinary/i) { $macbin=1; }
-	}
-	$upf_f="";$t_f="";$f_f="";
-	$tail =~ s/\r//g;
-	$tail =~ s/\n//g;
-	$fname =~ s/\"//g;
 
-	# ファイル形式を認識
-	$flag=0;
-	if ($tail =~ /gif/i) { $tail=".gif"; $flag=1; }
-	if ($tail =~ /jpeg/i) { $tail=".jpg"; $flag=1; }
-	if ($tail =~ /x-png/i) { $tail=".png"; $flag=1; }
-	if ($tail =~ /png/i) { $tail=".png"; $flag=1; }
-	if (!$flag) {
-		#if ($fname =~ /.gif/i) { $tail=".gif"; $flag=1; }
-		#if (($fname =~ /.jpg/i) || ($fname =~ /.jpeg/i)){ $tail=".jpg"; $flag=1; }
-		#if ($fname =~ /.png/i) { $tail=".png"; $flag=1; }
-	}
-    
-    if($upz_f){
-        if ($tail =~ /shockwave\-flash/i) { $tail=".swf"; $msz=1; }
-	if (!$msz) { &error("アップロードできないファイル形式です","lock_1 $tail"); }
-	$upfile = $in{'upflash'};
+    # 画像処理
+    $macbin = 0;
+    foreach (@in) {
+        if    ( $upf_f && $t_f ) { $dm_f = 1; }
+        elsif ( $_ =~ /(.*)Content-type:(.*)\/(.*)/i ) {
+            $tail = $3;
+            $t_f  = 1;
+        }
+        if    ( $upf_f && $f_f )                    { $dm_f  = 1; }
+        elsif ( $_ =~ /(.*)filename=(.*)/i )        { $fname = $2; $f_f = 1; }
+        if    ( $_ =~ /application\/x-macbinary/i ) { $macbin = 1; }
     }
-    
-    if($upb_f){
-	@ok_ad= keys(%ok_ad);
-	foreach $ck_ad(@ok_ad){
-	    if ($tail =~ /$ck_ad/i) { $tail=".$ok_ad{$ck_ad}";$b_tail=$ok_ad{$ck_ad};$msc=1;last;}
-	}
+    $upf_f = "";
+    $t_f   = "";
+    $f_f   = "";
+    $tail  =~ s/\r//g;
+    $tail  =~ s/\n//g;
+    $fname =~ s/\"//g;
 
-	if (!$msc) { &error("アップロードできないファイル形式です","lock_2 $tail"); }
+    # ファイル形式を認識
+    $flag = 0;
+    if ( $tail =~ /gif/i )   { $tail = ".gif"; $flag = 1; }
+    if ( $tail =~ /jpeg/i )  { $tail = ".jpg"; $flag = 1; }
+    if ( $tail =~ /x-png/i ) { $tail = ".png"; $flag = 1; }
+    if ( $tail =~ /png/i )   { $tail = ".png"; $flag = 1; }
+    if ( !$flag ) {
 
-	$upfile = $in{'upbgm'};
-    }elsif(!$msz){
-	if (!$flag) { &error("アップロードできないファイル形式です","lock_3 $tail"); }
-	$w_tail=$tail; 
-	$upfile = $in{'upfile'};
+   #if ($fname =~ /.gif/i) { $tail=".gif"; $flag=1; }
+   #if (($fname =~ /.jpg/i) || ($fname =~ /.jpeg/i)){ $tail=".jpg"; $flag=1; }
+   #if ($fname =~ /.png/i) { $tail=".png"; $flag=1; }
     }
 
-	# マックバイナリ対策
-	if ($macbin) {
-		$length = substr($upfile,83,4);
-		$length = unpack("%N",$length);
-		$upfile = substr($upfile,128,$length);
-	}
+    if ($upz_f) {
+        if ( $tail =~ /shockwave\-flash/i ) { $tail = ".swf"; $msz = 1; }
+        if ( !$msz ) { &error( "アップロードできないファイル形式です", "lock_1 $tail" ); }
+        $upfile = $in{'upflash'};
+    }
 
-	# 添付データを書き込み
-	if($upb_f){
-	$ImgFile = "$ImgDir$imgdata$tail";
-	$up_err_msg="BGMのアップロードに失敗しました";
-	}
-    elsif($upz_f){
-	$ImgFile = "$ImgDir$imgdata$tail";
-	$up_err_msg="Flashのアップロードに失敗しました";
-	}
-	else{
-	$ImgFile = "$ImgDir$imgdata$tail";
-	$up_err_msg="画像のアップロードに失敗しました";
-	}
+    if ($upb_f) {
+        @ok_ad = keys(%ok_ad);
+        foreach $ck_ad (@ok_ad) {
+            if ( $tail =~ /$ck_ad/i ) {
+                $tail   = ".$ok_ad{$ck_ad}";
+                $b_tail = $ok_ad{$ck_ad};
+                $msc    = 1;
+                last;
+            }
+        }
 
-	#open(OUT,"> $ImgFile") || &error("$up_err_msg","lock");
-	sysopen(OUT,"$ImgFile" , O_WRONLY | O_TRUNC | O_CREAT ) || &error("$up_err_msg","lock");
-	binmode(OUT);
-	binmode(STDOUT);
-	print OUT $upfile;
-	close(OUT);
+        if ( !$msc ) { &error( "アップロードできないファイル形式です", "lock_2 $tail" ); }
 
-	chmod (0666,$ImgFile);
-	$upb_f="";$macbin="";$msc="";
+        $upfile = $in{'upbgm'};
+    }
+    elsif ( !$msz ) {
+        if ( !$flag ) { &error( "アップロードできないファイル形式です", "lock_3 $tail" ); }
+        $w_tail = $tail;
+        $upfile = $in{'upfile'};
+    }
+
+    # マックバイナリ対策
+    if ($macbin) {
+        $length = substr( $upfile, 83, 4 );
+        $length = unpack( "%N", $length );
+        $upfile = substr( $upfile, 128, $length );
+    }
+
+    # 添付データを書き込み
+    if ($upb_f) {
+        $ImgFile    = "$ImgDir$imgdata$tail";
+        $up_err_msg = "BGMのアップロードに失敗しました";
+    }
+    elsif ($upz_f) {
+        $ImgFile    = "$ImgDir$imgdata$tail";
+        $up_err_msg = "Flashのアップロードに失敗しました";
+    }
+    else {
+        $ImgFile    = "$ImgDir$imgdata$tail";
+        $up_err_msg = "画像のアップロードに失敗しました";
+    }
+
+    #open(OUT,"> $ImgFile") || &error("$up_err_msg","lock");
+    sysopen( OUT, "$ImgFile", O_WRONLY | O_TRUNC | O_CREAT )
+        || &error( "$up_err_msg", "lock" );
+    binmode(OUT);
+    binmode(STDOUT);
+    print OUT $upfile;
+    close(OUT);
+
+    chmod( 0666, $ImgFile );
+    $upb_f  = "";
+    $macbin = "";
+    $msc    = "";
 }
 
-
-
-
-
 # 最終レス日順並び替え
-sub dt_sort{
-	foreach(@lines){
-	($dt_knum,$dt_num,$dt_date)=split(/<>/,$_);
-	if($dt_num){$nxt_key=1;}else{$nxt=0;$nxt_key=0;next;} # next を $dt_num=$dt_knum に変えれば更新順
-	if($nxt){next;}
-	$dt_date =~ s/\///g; $dt_date =~ s/://g; $dt_date =~ s/\([^)]*\)//g;
-	$no_sort{$dt_num}="$dt_date";
-	if($nxt_key){$nxt=1;}
-	}
-	@dt_sort = sort{ "$no_sort{$b}" cmp "$no_sort{$a}"} (keys %no_sort);
-	foreach(@dt_sort){
-		foreach $ln(@lines){
-		($dt_knum,$dt_num)=split(/<>/,$ln);
-		if(!$dt_num){$dt_num=$dt_knum;}
-		if($_ == $dt_num){push(@newlines,$ln);}
-		}
-	}
+sub dt_sort {
+    foreach (@lines) {
+        ( $dt_knum, $dt_num, $dt_date ) = split( /<>/, $_ );
+        if ($dt_num) { $nxt_key = 1; }
+        else {
+            $nxt     = 0;
+            $nxt_key = 0;
+            next;
+        }    # next を $dt_num=$dt_knum に変えれば更新順
+        if ($nxt) { next; }
+        $dt_date =~ s/\///g;
+        $dt_date =~ s/://g;
+        $dt_date =~ s/\([^)]*\)//g;
+        $no_sort{$dt_num} = "$dt_date";
+        if ($nxt_key) { $nxt = 1; }
+    }
+    @dt_sort = sort { "$no_sort{$b}" cmp "$no_sort{$a}" } ( keys %no_sort );
+    foreach (@dt_sort) {
+        foreach $ln (@lines) {
+            ( $dt_knum, $dt_num ) = split( /<>/, $ln );
+            if ( !$dt_num )      { $dt_num = $dt_knum; }
+            if ( $_ == $dt_num ) { push( @newlines, $ln ); }
+        }
+    }
 
-	foreach (@lines){
-	($dt_knum,$dt_num)=split(/<>/,$_);
-	if(!$dt_num){$dt_num=$dt_knum;}
-		foreach $in(@dt_sort){
-		if($in == $dt_num){$in_f=1;}
-		}
-	if(!$in_f){push(@newlines,$_);}
-	$in_f=0;
-	}
-@lines=@newlines;
+    foreach (@lines) {
+        ( $dt_knum, $dt_num ) = split( /<>/, $_ );
+        if ( !$dt_num ) { $dt_num = $dt_knum; }
+        foreach $in (@dt_sort) {
+            if ( $in == $dt_num ) { $in_f = 1; }
+        }
+        if ( !$in_f ) { push( @newlines, $_ ); }
+        $in_f = 0;
+    }
+    @lines = @newlines;
 }
 
 ## ランキング表示
-sub rank{
+sub rank {
 
-#open (RL,"$rank_log") || &error("Can't open $rank_log");
-sysopen (RL,"$rank_log",O_RDONLY | O_CREAT) || &error("Can't open $rank_log");
-@hd_rank = <RL>;
-close(RL);
-foreach $buf(@hd_rank){ utf8::decode($buf) };
+    #open (RL,"$rank_log") || &error("Can't open $rank_log");
+    sysopen( RL, "$rank_log", O_RDONLY | O_CREAT )
+        || &error("Can't open $rank_log");
+    @hd_rank = <RL>;
+    close(RL);
+    foreach $buf (@hd_rank) { utf8::decode($buf) }
 
-foreach $hd_rank(@hd_rank){
-$hd_rank =~ s/\n//;
-($name,$cnt,$cg_cnt,$bgm_cnt,$flash_cnt,$res_cnt,$pass,$la,$rest_cnt,$mcr_cnt) = split(/<>/,$hd_rank);
-if($cnt){$rank{$name} = $cnt;}
-$cg_rank{$name} = $cg_cnt;
-$bgm_rank{$name} = $bgm_cnt;
-$flash_rank{$name} = $flash_cnt;
-$res_rank{$name} = $res_cnt;
-$rest_rank{$name} = $rest_cnt;
-$mcr_rank{$name} = $mcr_cnt;
+    foreach $hd_rank (@hd_rank) {
+        $hd_rank =~ s/\n//;
+        (   $name,    $cnt,  $cg_cnt, $bgm_cnt,  $flash_cnt,
+            $res_cnt, $pass, $la,     $rest_cnt, $mcr_cnt
+        ) = split( /<>/, $hd_rank );
+        if ($cnt) { $rank{$name} = $cnt; }
+        $cg_rank{$name}    = $cg_cnt;
+        $bgm_rank{$name}   = $bgm_cnt;
+        $flash_rank{$name} = $flash_cnt;
+        $res_rank{$name}   = $res_cnt;
+        $rest_rank{$name}  = $rest_cnt;
+        $mcr_rank{$name}   = $mcr_cnt;
 
-}
+    }
 
-@sort_rank = sort {$rank{$b} <=> $rank{$a}} keys(%rank);
-foreach(@sort_rank){++$num;$all_num = $all_num + $rank{$_};}
+    @sort_rank = sort { $rank{$b} <=> $rank{$a} } keys(%rank);
+    foreach (@sort_rank) { ++$num; $all_num = $all_num + $rank{$_}; }
 
-&header;
-print <<EOM;
+    &header;
+    print <<EOM;
 <a name=top>[<a href=$script?cnt=no>掲示板に戻る</a>]</a>
 <br>
 <center><font color=\"$t_color\" size=6 face=\"$t_face\"><b><SPAN>貼\り逃げだ〜び〜</SPAN></b></font><br><br>
@@ -3874,34 +4441,43 @@ print <<EOM;
 <tr><th>順位</th><th>お名前</th><th nowrap>萌え度</th><th>萌えぱ〜せんて〜じ</th></tr>
 EOM
 
-foreach(@sort_rank){
-++$rk;
-	if($nex_jg == $rank{$_}){
-		if($next_num){
-		$ex_num = $next_num;
-		}else{
-		$next_num = $rk; $ex_num = --$next_num;
-		}
-	}else{
-	$next_num=0;$ex_num = $rk;
-	}
+    foreach (@sort_rank) {
+        ++$rk;
+        if ( $nex_jg == $rank{$_} ) {
+            if ($next_num) {
+                $ex_num = $next_num;
+            }
+            else {
+                $next_num = $rk;
+                $ex_num   = --$next_num;
+            }
+        }
+        else {
+            $next_num = 0;
+            $ex_num   = $rk;
+        }
 
-$nex_jg = $rank{$_};
-$per = int((($rank{$_}/$all_num)*100)+0.5);
-if(!$per){$per=1;}
-$gif_w =int($rank{$_}*$g_width);if(!$gif_w){$gif_w=1;}
-print"<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
-}
+        $nex_jg = $rank{$_};
+        $per    = int( ( ( $rank{$_} / $all_num ) * 100 ) + 0.5 );
+        if ( !$per ) { $per = 1; }
+        $gif_w = int( $rank{$_} * $g_width );
+        if ( !$gif_w ) { $gif_w = 1; }
+        print
+            "<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
+    }
 
-print"</table>";
-print "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table><br>";
+    print "</table>";
+    print
+        "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table><br>";
 
-$ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
+    $ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
 
-@sort_rank = sort {$cg_rank{$b} <=> $cg_rank{$a}} keys(%cg_rank);
-foreach(@sort_rank){if($cg_rank{$_}){++$num;$all_num = $all_num + $cg_rank{$_};}}
+    @sort_rank = sort { $cg_rank{$b} <=> $cg_rank{$a} } keys(%cg_rank);
+    foreach (@sort_rank) {
+        if ( $cg_rank{$_} ) { ++$num; $all_num = $all_num + $cg_rank{$_}; }
+    }
 
-print <<EOM;
+    print <<EOM;
 <a name=cg><br></a>
 <table width=\"80%\"><tr><td>
 <font color=blue size=+1 face=\"$t_face\">現在の萌え画像総数 $all_num だ〜び〜参加人数 $num人</font><br><br>
@@ -3910,36 +4486,45 @@ print <<EOM;
 <tr><th>順位</th><th>お名前</th><th nowrap>萌え度</th><th>萌えぱ〜せんて〜じ</th></tr>
 EOM
 
-foreach(@sort_rank){
-++$rk;
-	if($nex_jg == $cg_rank{$_}){
-		if($next_num){
-		$ex_num = $next_num;
-		}else{
-		$next_num = $rk; $ex_num = --$next_num;
-		}
-	}else{
-	$next_num=0;$ex_num = $rk;
-	}
+    foreach (@sort_rank) {
+        ++$rk;
+        if ( $nex_jg == $cg_rank{$_} ) {
+            if ($next_num) {
+                $ex_num = $next_num;
+            }
+            else {
+                $next_num = $rk;
+                $ex_num   = --$next_num;
+            }
+        }
+        else {
+            $next_num = 0;
+            $ex_num   = $rk;
+        }
 
-$nex_jg = $cg_rank{$_};
-$per = int((($cg_rank{$_}/$all_num)*100)+0.5);
-if(!$per){$per=1;}
-if($cg_rank{$_}){
-$gif_w =int($cg_rank{$_}*$g_width);if(!$gif_w){$gif_w=1;}
-print"<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$cg_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
-}
-}
+        $nex_jg = $cg_rank{$_};
+        $per    = int( ( ( $cg_rank{$_} / $all_num ) * 100 ) + 0.5 );
+        if ( !$per ) { $per = 1; }
+        if ( $cg_rank{$_} ) {
+            $gif_w = int( $cg_rank{$_} * $g_width );
+            if ( !$gif_w ) { $gif_w = 1; }
+            print
+                "<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$cg_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
+        }
+    }
 
-print"</table>";
-print "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table><br>";
+    print "</table>";
+    print
+        "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table><br>";
 
-$ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
+    $ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
 
-@sort_rank = sort {$bgm_rank{$b} <=> $bgm_rank{$a}} keys(%bgm_rank);
-foreach(@sort_rank){if($bgm_rank{$_}){++$num;$all_num = $all_num + $bgm_rank{$_};}}
+    @sort_rank = sort { $bgm_rank{$b} <=> $bgm_rank{$a} } keys(%bgm_rank);
+    foreach (@sort_rank) {
+        if ( $bgm_rank{$_} ) { ++$num; $all_num = $all_num + $bgm_rank{$_}; }
+    }
 
-print <<EOM;
+    print <<EOM;
 <a name=bgm><br></a>
 <table width=\"80%\"><tr><td>
 <font color=blue size=+1 face=\"$t_face\">現在の萌えBGM総数 $all_num だ〜び〜参加人数 $num人</font><br><br>
@@ -3948,36 +4533,49 @@ print <<EOM;
 <tr><th>順位</th><th>お名前</th><th nowrap>萌え度</th><th>萌えぱ〜せんて〜じ</th></tr>
 EOM
 
-foreach(@sort_rank){
-++$rk;
-	if($nex_jg == $bgm_rank{$_}){
-		if($next_num){
-		$ex_num = $next_num;
-		}else{
-		$next_num = $rk; $ex_num = --$next_num;
-		}
-	}else{
-	$next_num=0;$ex_num = $rk;
-	}
+    foreach (@sort_rank) {
+        ++$rk;
+        if ( $nex_jg == $bgm_rank{$_} ) {
+            if ($next_num) {
+                $ex_num = $next_num;
+            }
+            else {
+                $next_num = $rk;
+                $ex_num   = --$next_num;
+            }
+        }
+        else {
+            $next_num = 0;
+            $ex_num   = $rk;
+        }
 
-$nex_jg = $bgm_rank{$_};
-$per = int((($bgm_rank{$_}/$all_num)*100)+0.5);
-if(!$per){$per=1;}
-if($bgm_rank{$_}){
-$gif_w =int($bgm_rank{$_}*$g_width);if(!$gif_w){$gif_w=1;}
-print"<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$bgm_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
-}
-}
+        $nex_jg = $bgm_rank{$_};
+        $per    = int( ( ( $bgm_rank{$_} / $all_num ) * 100 ) + 0.5 );
+        if ( !$per ) { $per = 1; }
+        if ( $bgm_rank{$_} ) {
+            $gif_w = int( $bgm_rank{$_} * $g_width );
+            if ( !$gif_w ) { $gif_w = 1; }
+            print
+                "<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$bgm_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
+        }
+    }
 
-print "</table>";
-print "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table><br>";
+    print "</table>";
+    print
+        "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table><br>";
 
-$ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
+    $ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
 
-@sort_rank = sort {$flash_rank{$b} <=> $flash_rank{$a}} keys(%flash_rank);
-foreach(@sort_rank){if($flash_rank{$_}){++$num;$all_num = $all_num + $flash_rank{$_};}}
+    @sort_rank
+        = sort { $flash_rank{$b} <=> $flash_rank{$a} } keys(%flash_rank);
+    foreach (@sort_rank) {
+        if ( $flash_rank{$_} ) {
+            ++$num;
+            $all_num = $all_num + $flash_rank{$_};
+        }
+    }
 
-print <<EOM;
+    print <<EOM;
 <a name=flash><br></a>
 <table width=\"80%\"><tr><td>
 <font color=blue size=+1 face=\"$t_face\">現在の萌えFlash総数 $all_num だ〜び〜参加人数 $num人</font><br><br>
@@ -3986,36 +4584,45 @@ print <<EOM;
 <tr><th>順位</th><th>お名前</th><th nowrap>萌え度</th><th>萌えぱ〜せんて〜じ</th></tr>
 EOM
 
-foreach(@sort_rank){
-++$rk;
-	if($nex_jg == $flash_rank{$_}){
-		if($next_num){
-		$ex_num = $next_num;
-		}else{
-		$next_num = $rk; $ex_num = --$next_num;
-		}
-	}else{
-	$next_num=0;$ex_num = $rk;
-	}
+    foreach (@sort_rank) {
+        ++$rk;
+        if ( $nex_jg == $flash_rank{$_} ) {
+            if ($next_num) {
+                $ex_num = $next_num;
+            }
+            else {
+                $next_num = $rk;
+                $ex_num   = --$next_num;
+            }
+        }
+        else {
+            $next_num = 0;
+            $ex_num   = $rk;
+        }
 
-$nex_jg = $flash_rank{$_};
-$per = int((($flash_rank{$_}/$all_num)*100)+0.5);
-if(!$per){$per=1;}
-if($flash_rank{$_}){
-$gif_w =int($flash_rank{$_}*$g_width);if(!$gif_w){$gif_w=1;}
-print"<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$flash_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
-}
-}
+        $nex_jg = $flash_rank{$_};
+        $per    = int( ( ( $flash_rank{$_} / $all_num ) * 100 ) + 0.5 );
+        if ( !$per ) { $per = 1; }
+        if ( $flash_rank{$_} ) {
+            $gif_w = int( $flash_rank{$_} * $g_width );
+            if ( !$gif_w ) { $gif_w = 1; }
+            print
+                "<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$flash_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
+        }
+    }
 
-print "</table>";
-print "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table><br>";
+    print "</table>";
+    print
+        "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table><br>";
 
-$ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
+    $ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
 
-@sort_rank = sort {$res_rank{$b} <=> $res_rank{$a}} keys(%res_rank);
-foreach(@sort_rank){if($res_rank{$_}){++$num;$all_num = $all_num + $res_rank{$_};}}
+    @sort_rank = sort { $res_rank{$b} <=> $res_rank{$a} } keys(%res_rank);
+    foreach (@sort_rank) {
+        if ( $res_rank{$_} ) { ++$num; $all_num = $all_num + $res_rank{$_}; }
+    }
 
-print <<EOM;
+    print <<EOM;
 <a name=res><br></a>
 <table width=\"80%\"><tr><td>
 <font color=blue size=+1 face=\"$t_face\">現在の萌えレス総数 $all_num だ〜び〜参加人数 $num人</font><br><br>
@@ -4024,35 +4631,47 @@ print <<EOM;
 <tr><th>順位</th><th>お名前</th><th nowrap>萌え度</th><th>萌えぱ〜せんて〜じ</th></tr>
 EOM
 
-foreach(@sort_rank){
-++$rk;
-	if($nex_jg == $res_rank{$_}){
-		if($next_num){
-		$ex_num = $next_num;
-		}else{
-		$next_num = $rk; $ex_num = --$next_num;
-		}
-	}else{
-	$next_num=0;$ex_num = $rk;
-	}
+    foreach (@sort_rank) {
+        ++$rk;
+        if ( $nex_jg == $res_rank{$_} ) {
+            if ($next_num) {
+                $ex_num = $next_num;
+            }
+            else {
+                $next_num = $rk;
+                $ex_num   = --$next_num;
+            }
+        }
+        else {
+            $next_num = 0;
+            $ex_num   = $rk;
+        }
 
-$nex_jg = $res_rank{$_};
-$per = int((($res_rank{$_}/$all_num)*100)+0.5);
-if(!$per){$per=1;}
-if($res_rank{$_}){
-$gif_w =int($res_rank{$_}*$g_width);if(!$gif_w){$gif_w=1;}
-print"<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$res_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
-}
-}
-print "</table>";
-print "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table>";
+        $nex_jg = $res_rank{$_};
+        $per    = int( ( ( $res_rank{$_} / $all_num ) * 100 ) + 0.5 );
+        if ( !$per ) { $per = 1; }
+        if ( $res_rank{$_} ) {
+            $gif_w = int( $res_rank{$_} * $g_width );
+            if ( !$gif_w ) { $gif_w = 1; }
+            print
+                "<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$res_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
+        }
+    }
+    print "</table>";
+    print
+        "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table>";
 
-$ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
+    $ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
 
-@sort_rank = sort {$rest_rank{$b} <=> $rest_rank{$a}} keys(%rest_rank);
-foreach(@sort_rank){if($rest_rank{$_}){++$num;$all_num = $all_num + $rest_rank{$_};}}
+    @sort_rank = sort { $rest_rank{$b} <=> $rest_rank{$a} } keys(%rest_rank);
+    foreach (@sort_rank) {
+        if ( $rest_rank{$_} ) {
+            ++$num;
+            $all_num = $all_num + $rest_rank{$_};
+        }
+    }
 
-print <<EOM;
+    print <<EOM;
 <a name=rest><br></a>
 <table width=\"80%\"><tr><td>
 <font color=blue size=+1 face=\"$t_face\">現在の萌え編集総数 $all_num だ〜び〜参加人数 $num人</font><br><br>
@@ -4061,35 +4680,44 @@ print <<EOM;
 <tr><th>順位</th><th>お名前</th><th nowrap>萌え度</th><th>萌えぱ〜せんて〜じ</th></tr>
 EOM
 
-foreach(@sort_rank){
-++$rk;
-	if($nex_jg == $res_rank{$_}){
-		if($next_num){
-		$ex_num = $next_num;
-		}else{
-		$next_num = $rk; $ex_num = --$next_num;
-		}
-	}else{
-	$next_num=0;$ex_num = $rk;
-	}
+    foreach (@sort_rank) {
+        ++$rk;
+        if ( $nex_jg == $res_rank{$_} ) {
+            if ($next_num) {
+                $ex_num = $next_num;
+            }
+            else {
+                $next_num = $rk;
+                $ex_num   = --$next_num;
+            }
+        }
+        else {
+            $next_num = 0;
+            $ex_num   = $rk;
+        }
 
-$nex_jg = $rest_rank{$_};
-$per = int((($rest_rank{$_}/$all_num)*100)+0.5);
-if(!$per){$per=1;}
-if($rest_rank{$_}){
-$gif_w =int($rest_rank{$_}*$g_width);if(!$gif_w){$gif_w=1;}
-print"<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$rest_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
-}
-}
-print "</table>";
-print "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table>";
+        $nex_jg = $rest_rank{$_};
+        $per    = int( ( ( $rest_rank{$_} / $all_num ) * 100 ) + 0.5 );
+        if ( !$per ) { $per = 1; }
+        if ( $rest_rank{$_} ) {
+            $gif_w = int( $rest_rank{$_} * $g_width );
+            if ( !$gif_w ) { $gif_w = 1; }
+            print
+                "<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$rest_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
+        }
+    }
+    print "</table>";
+    print
+        "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table>";
 
-$ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
+    $ex_num = $rk = $nex_jg = $next_num = $num = $all_num = 0;
 
-@sort_rank = sort {$mcr_rank{$b} <=> $mcr_rank{$a}} keys(%mcr_rank);
-foreach(@sort_rank){if($mcr_rank{$_}){++$num;$all_num = $all_num + $mcr_rank{$_};}}
+    @sort_rank = sort { $mcr_rank{$b} <=> $mcr_rank{$a} } keys(%mcr_rank);
+    foreach (@sort_rank) {
+        if ( $mcr_rank{$_} ) { ++$num; $all_num = $all_num + $mcr_rank{$_}; }
+    }
 
-print <<EOM;
+    print <<EOM;
 <a name=mcr><br></a>
 <table width=\"80%\"><tr><td>
 <font color=blue size=+1 face=\"$t_face\">現在の萌えマクロ総数 $all_num だ〜び〜参加人数 $num人</font><br><br>
@@ -4098,103 +4726,119 @@ print <<EOM;
 <tr><th>順位</th><th>お名前</th><th nowrap>萌え度</th><th>萌えぱ〜せんて〜じ</th></tr>
 EOM
 
-foreach(@sort_rank){
-++$rk;
-	if($nex_jg == $mcr_rank{$_}){
-		if($next_num){
-		$ex_num = $next_num;
-		}else{
-		$next_num = $rk; $ex_num = --$next_num;
-		}
-	}else{
-	$next_num=0;$ex_num = $rk;
-	}
+    foreach (@sort_rank) {
+        ++$rk;
+        if ( $nex_jg == $mcr_rank{$_} ) {
+            if ($next_num) {
+                $ex_num = $next_num;
+            }
+            else {
+                $next_num = $rk;
+                $ex_num   = --$next_num;
+            }
+        }
+        else {
+            $next_num = 0;
+            $ex_num   = $rk;
+        }
 
-$nex_jg = $mcr_rank{$_};
-$per = int((($mcr_rank{$_}/$all_num)*100)+0.5);
-if(!$per){$per=1;}
-if($mcr_rank{$_}){
-$gif_w =int($mcr_rank{$_}*$g_width);if(!$gif_w){$gif_w=1;}
-print"<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$mcr_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
+        $nex_jg = $mcr_rank{$_};
+        $per    = int( ( ( $mcr_rank{$_} / $all_num ) * 100 ) + 0.5 );
+        if ( !$per ) { $per = 1; }
+        if ( $mcr_rank{$_} ) {
+            $gif_w = int( $mcr_rank{$_} * $g_width );
+            if ( !$gif_w ) { $gif_w = 1; }
+            print
+                "<tr><td>$ex_num</td><td><b>$_</b></td><td><b>$mcr_rank{$_}</b></td><td nowrap><img src=$icon_dir\graph.gif height=\"12\" width=\"$gif_w\"> $per\%</td></tr>";
+        }
+    }
+    print "</table>";
+    print
+        "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table>";
+    &footer;
+    exit;
 }
-}
-print "</table>";
-print "<table width=\"80%\"><tr><td>お名前の＠、@、☆、★以下は省略されます</td></tr></table>";
-&footer;
-exit;
-}
-
 
 # タグマクロ説明
-sub mc_ex{
-if($in{ft_ex}){
-@wrs1 = ('0'..'9');
-@wrs2 = ('a'..'z');
-@wrs3 = ('A'..'Z');
-@wrs4 = ('!','"','#','$','%','&','\'','(',')','-','=','^','~','\\','|','@','`','[','{',';','+',':','*',']','}',',','<','.','>','/','?','_');
+sub mc_ex {
+    if ( $in{ft_ex} ) {
+        @wrs1 = ( '0' .. '9' );
+        @wrs2 = ( 'a' .. 'z' );
+        @wrs3 = ( 'A' .. 'Z' );
+        @wrs4 = (
+            '!', '"', '#', '$', '%', '&',  '\'', '(',
+            ')', '-', '=', '^', '~', '\\', '|',  '@',
+            '`', '[', '{', ';', '+', ':',  '*',  ']',
+            '}', ',', '<', '.', '>', '/',  '?',  '_'
+        );
 
-@fs = ("webdings","wingdings");
+        @fs = ( "webdings", "wingdings" );
 
-&header;
-print <<EOM;
+        &header;
+        print <<EOM;
 <center>
 <br><font color=\"$t_color\" size=6 face=\"$t_face\"><b><SPAN>特殊フォント</SPAN></b></font></center><br><br>
 <blockquote>
 EOM
 
-foreach $fs(@fs){
-print "<center><font size=4><b>$fsフォント一覧</b></font></center>";
-foreach $fsn(1 .. 4){
+        foreach $fs (@fs) {
+            print "<center><font size=4><b>$fsフォント一覧</b></font></center>";
+            foreach $fsn ( 1 .. 4 ) {
 
-	if($fsn == 1){@wrs = @wrs1;}
-	elsif($fsn == 2){@wrs = @wrs2;}
-	elsif($fsn == 3){@wrs = @wrs3;}
-	elsif($fsn == 4){@wrs = @wrs4;}
+                if    ( $fsn == 1 ) { @wrs = @wrs1; }
+                elsif ( $fsn == 2 ) { @wrs = @wrs2; }
+                elsif ( $fsn == 3 ) { @wrs = @wrs3; }
+                elsif ( $fsn == 4 ) { @wrs = @wrs4; }
 
-	$wrss = "<table border=1 bgcolor=\"white\"><tr style=\"font-family:$fs\" align=center>";
-	foreach(@wrs){
-		$wrss .= "<td><font size=+2>$_</font></td>";
-	}
-	$wrss .= "</tr><tr align=center>";
-	foreach(@wrs){
-		$wrss .= "<td>$_</td>";
-	}
-	$wrss .= "</tr></table>";
+                $wrss
+                    = "<table border=1 bgcolor=\"white\"><tr style=\"font-family:$fs\" align=center>";
+                foreach (@wrs) {
+                    $wrss .= "<td><font size=+2>$_</font></td>";
+                }
+                $wrss .= "</tr><tr align=center>";
+                foreach (@wrs) {
+                    $wrss .= "<td>$_</td>";
+                }
+                $wrss .= "</tr></table>";
 
-	print "$wrss<br><br>";
-}
-print "<br><br>";
-}
-print "</blockquote>";
-&footer;
-exit;
-}
-@tc_nm =( "うぐぅ","そんなこと言う人キライです","了承","あははー","あぅ〜","くぅ。。。","かなりキライじゃない");
-srand;
+                print "$wrss<br><br>";
+            }
+            print "<br><br>";
+        }
+        print "</blockquote>";
+        &footer;
+        exit;
+    }
+    @tc_nm = (
+        "うぐぅ", "そんなこと言う人キライです", "了承", "あははー",
+        "あぅ〜", "くぅ。。。",         "かなりキライじゃない"
+    );
+    srand;
 
-$tgs=0;
-foreach(@tgs1){
-$tgtb = "$tgtb<tr><td nowrap>$_：<$tgs2[$tgs]>$tc_nm[int(rand(7))]</$tgs2[$tgs]></td></tr>\n";
-++$tgs;
-}
+    $tgs = 0;
+    foreach (@tgs1) {
+        $tgtb
+            = "$tgtb<tr><td nowrap>$_：<$tgs2[$tgs]>$tc_nm[int(rand(7))]</$tgs2[$tgs]></td></tr>\n";
+        ++$tgs;
+    }
 
-$tgs=0;
-foreach(@itgs1){
-$itgtb = "$itgtb<tr><td nowrap>$_：<img $itgs2[$tgs] src=$icon_dir\home.gif></td></tr>\n";
-++$tgs;
-}
+    $tgs = 0;
+    foreach (@itgs1) {
+        $itgtb
+            = "$itgtb<tr><td nowrap>$_：<img $itgs2[$tgs] src=$icon_dir\home.gif></td></tr>\n";
+        ++$tgs;
+    }
 
+    $ftad = 0;
+    foreach (@sfont1) {
+        $fts .= "$_（$sfont2[$ftad]） ";
+        ++$ftad;
+    }
 
-$ftad=0;
-foreach(@sfont1){
-	$fts .= "$_（$sfont2[$ftad]） ";
-	++$ftad;
-}
+    $nog = "none.gif";
 
-$nog = "none.gif";
-
-&header;
-print <<EOM;
+    &header;
+    print <<EOM;
 <center>
 <br><font color=\"$t_color\" size=6 face=\"$t_face\"><b><SPAN>マクロ説明</SPAN></b></font><br><br>
 <table bgcolor=white><tr><td>
@@ -4266,295 +4910,317 @@ $itgtb
 
 EOM
 
+    print "</td></tr></table></center>";
 
-print "</td></tr></table></center>";
-
-&footer;
-exit;
+    &footer;
+    exit;
 }
 
 # タグマクロ
-sub tg_en{
+sub tg_en {
 
-	local($size,$color,$face);
+    local ( $size, $color, $face );
 
-	$tgrp = 0;
-	@pcom = ();
+    $tgrp = 0;
+    @pcom = ();
 
-	if($_[0] =~ /\/([^\/:]+):([\w\d]*\.\w{3})\//){
+    if ( $_[0] =~ /\/([^\/:]+):([\w\d]*\.\w{3})\// ) {
 
-		if(!$op_ico){
-			#open(IN,"$icofile") || &error("Can't open $icofile",'NOLOCK');
-			sysopen(IN,"$icofile",O_RDONLY) || &error("Can't open $icofile",'NOLOCK');
-			@icons = <IN>;
-			close(IN);
-			foreach $buf(@icons){ utf8::decode($buf) };
-			$op_ico = 1;
-		}
+        if ( !$op_ico ) {
 
-		while($_[0] =~ /\/([^\/:]+):([\w\d]*\.\w{3})\//){
-			$ch_css = $imcd = "";
-			$imc = "$1";
-			@imcs = split(/,/,$imc);
-			foreach(@imcs){
-				if($_ =~ /IN\((.+)\)/){$ch_css .=" onmouseover=\"this.src=\'$icon_dir$1\'\"";}
+            #open(IN,"$icofile") || &error("Can't open $icofile",'NOLOCK');
+            sysopen( IN, "$icofile", O_RDONLY )
+                || &error( "Can't open $icofile", 'NOLOCK' );
+            @icons = <IN>;
+            close(IN);
+            foreach $buf (@icons) { utf8::decode($buf) }
+            $op_ico = 1;
+        }
 
-				elsif($_ =~ /OUT\((.+)\)/){$ch_css .=" onmouseout=\"this.src=\'$icon_dir$1\'\"";}
-				else{$imcd = "$_";}
-			}
+        while ( $_[0] =~ /\/([^\/:]+):([\w\d]*\.\w{3})\// ) {
+            $ch_css = $imcd = "";
+            $imc    = "$1";
+            @imcs   = split( /,/, $imc );
+            foreach (@imcs) {
+                if ( $_ =~ /IN\((.+)\)/ ) {
+                    $ch_css .= " onmouseover=\"this.src=\'$icon_dir$1\'\"";
+                }
 
-			$cs_rp = 0;
-			foreach(@itgs1){
-				if($_ eq "$imcd"){$ch_css .= " $itgs2[$cs_rp]";$css_ck = 1;last;}
-				++$cs_rp;
-			}
-			if($imcd && !$css_ck){&error("$imcdはマクロ登録されていません");}
+                elsif ( $_ =~ /OUT\((.+)\)/ ) {
+                    $ch_css .= " onmouseout=\"this.src=\'$icon_dir$1\'\"";
+                }
+                else { $imcd = "$_"; }
+            }
 
-			$_[0] =~ s/\/([^\/:]+):([\w\d]*\.\w{3})\//<img$ch_css src="$icon_dir$2">/;
-			$ic_ck = 0;
-			foreach(@icons){
-				($d1,$d2) = split(/\t/,$_);
-				if($d2 eq "$2"){$ic_ck = 1;last;}
-			}
-			if(!$ic_ck){&error("$2はアイコン登録されていません");}
+            $cs_rp = 0;
+            foreach (@itgs1) {
+                if ( $_ eq "$imcd" ) {
+                    $ch_css .= " $itgs2[$cs_rp]";
+                    $css_ck = 1;
+                    last;
+                }
+                ++$cs_rp;
+            }
+            if ( $imcd && !$css_ck ) { &error("$imcdはマクロ登録されていません"); }
 
-			$mcr_use = 1;
-		}
+            $_[0]
+                =~ s/\/([^\/:]+):([\w\d]*\.\w{3})\//<img$ch_css src="$icon_dir$2">/;
+            $ic_ck = 0;
+            foreach (@icons) {
+                ( $d1, $d2 ) = split( /\t/, $_ );
+                if ( $d2 eq "$2" ) { $ic_ck = 1; last; }
+            }
+            if ( !$ic_ck ) { &error("$2はアイコン登録されていません"); }
 
-	}
+            $mcr_use = 1;
+        }
 
-	if($_[0] =~ /\/([\w\d]*\.\w{3})\//){
+    }
 
-		if(!$op_ico){
-			#open(IN,"$icofile") || &error("Can't open $icofile",'NOLOCK');
-			sysopen(IN,"$icofile",O_RDONLY) || &error("Can't open $icofile",'NOLOCK');
-			@icons = <IN>;
-			close(IN);
-			foreach $buf(@icons){ utf8::decode($buf) };
-			$op_ico = 1;
-		}
+    if ( $_[0] =~ /\/([\w\d]*\.\w{3})\// ) {
 
-		while($_[0] =~ s/\/([\w\d]*\.\w{3})\//<img src="$icon_dir$1">/){
-			$ic_ck = 0;
-			foreach(@icons){
-				($d1,$d2) = split(/\t/,$_);
-				if($d2 eq "$1"){$ic_ck = 1;last;}
-			}
-			if(!$ic_ck){&error("$1はアイコン登録されていません");}
+        if ( !$op_ico ) {
 
-			$mcr_use = 1;
-		}
+            #open(IN,"$icofile") || &error("Can't open $icofile",'NOLOCK');
+            sysopen( IN, "$icofile", O_RDONLY )
+                || &error( "Can't open $icofile", 'NOLOCK' );
+            @icons = <IN>;
+            close(IN);
+            foreach $buf (@icons) { utf8::decode($buf) }
+            $op_ico = 1;
+        }
 
-	}
+        while ( $_[0] =~ s/\/([\w\d]*\.\w{3})\//<img src="$icon_dir$1">/ ) {
+            $ic_ck = 0;
+            foreach (@icons) {
+                ( $d1, $d2 ) = split( /\t/, $_ );
+                if ( $d2 eq "$1" ) { $ic_ck = 1; last; }
+            }
+            if ( !$ic_ck ) { &error("$1はアイコン登録されていません"); }
 
-	
-	push(@tgs1,"RB");
-	push(@tgs2,"ruby");
+            $mcr_use = 1;
+        }
 
-	while($_[0] =~ s/\[([^:\]]+):([^\]]*)]/<com$tgrp>/){
-		$rb_ck = $rb_cl = "";
-		++$tgrp;
-		@base_tgs = @tg_ex = @tg_ed = ();
+    }
 
-		$tg_ex = $ft_ex = $size = $color = $face = "";
+    push( @tgs1, "RB" );
+    push( @tgs2, "ruby" );
 
-		$base_tgs = $1;
-		$com1 = $com2 = $2;
+    while ( $_[0] =~ s/\[([^:\]]+):([^\]]*)]/<com$tgrp>/ ) {
+        $rb_ck = $rb_cl = "";
+        ++$tgrp;
+        @base_tgs = @tg_ex = @tg_ed = ();
 
-		@base_tgs = split(/,/,$base_tgs);
+        $tg_ex = $ft_ex = $size = $color = $face = "";
 
-		foreach(@base_tgs){
-			$tgs_cn = 0;
-			if($_ =~ /^F/){
-				if($_ =~ /s\(([^)]+)\)/){$size = $1;}
-				if($_ =~ /c\(([^)]+)\)/){$color = $1;}
-				if($_ =~ /f\(([^)]+)\)/){$face = $1;}
-				$sf_ad = 0;
-				foreach(@sfont1){
-					if($face eq "$_"){$face = "$sfont2[$sf_ad]";}
-					++$sf_ad;
-				}
-				$ft_ex = 1;
-			}
-			if($_ eq "RB"){$rb_ck = 1;}
-			foreach $tg(@tgs1){
-				if($_ eq "$tg"){push(@tg_ex,$tgs2[$tgs_cn]);}
-				++$tgs_cn;
-			}
-		}
-		if($rb_ck){
-			if($com1 =~ s/\(([^:\)]+):([^)]+)\)$/\($2\)/){$rb_cl = $1;}
-			if($rb_cl){$rb_cl = " style=\"color:$rb_cl\"";}
-			$com1 =~ s/\(([^)]+)\)$/<rt$rb_cl>$1<\/rt>/;
-		}
-		foreach(@tg_ex){
-			$tg_ed = "</$_>";
-			push(@tg_ed,$tg_ed);
-			$_ = "<$_>";
-		}
+        $base_tgs = $1;
+        $com1     = $com2 = $2;
 
-		if($ft_ex){
-			if($size){$size =" size=\"$size\"";}
-			if($color){$color =" color=\"$color\"";}
-			if($face){$face =" face=\"$face\"";}
-			unshift(@tg_ex,"<font$size$color$face>");
-			unshift(@tg_ed,"</font>");
-		}
+        @base_tgs = split( /,/, $base_tgs );
 
-		foreach(@tg_ex){
-		$com1 = "$_"."$com1"."$tg_ed[$tg_ex]";
-		++$tg_ex;
-		}
-		$com1 =~ s/value=moe_vt/value="$com2"/;
-		push(@pcom,$com1);
+        foreach (@base_tgs) {
+            $tgs_cn = 0;
+            if ( $_ =~ /^F/ ) {
+                if ( $_ =~ /s\(([^)]+)\)/ ) { $size  = $1; }
+                if ( $_ =~ /c\(([^)]+)\)/ ) { $color = $1; }
+                if ( $_ =~ /f\(([^)]+)\)/ ) { $face  = $1; }
+                $sf_ad = 0;
+                foreach (@sfont1) {
+                    if ( $face eq "$_" ) { $face = "$sfont2[$sf_ad]"; }
+                    ++$sf_ad;
+                }
+                $ft_ex = 1;
+            }
+            if ( $_ eq "RB" ) { $rb_ck = 1; }
+            foreach $tg (@tgs1) {
+                if ( $_ eq "$tg" ) { push( @tg_ex, $tgs2[$tgs_cn] ); }
+                ++$tgs_cn;
+            }
+        }
+        if ($rb_ck) {
+            if ( $com1 =~ s/\(([^:\)]+):([^)]+)\)$/\($2\)/ ) { $rb_cl = $1; }
+            if ($rb_cl) { $rb_cl = " style=\"color:$rb_cl\""; }
+            $com1 =~ s/\(([^)]+)\)$/<rt$rb_cl>$1<\/rt>/;
+        }
+        foreach (@tg_ex) {
+            $tg_ed = "</$_>";
+            push( @tg_ed, $tg_ed );
+            $_ = "<$_>";
+        }
 
-		$mcr_use = 1;
+        if ($ft_ex) {
+            if ($size)  { $size  = " size=\"$size\""; }
+            if ($color) { $color = " color=\"$color\""; }
+            if ($face)  { $face  = " face=\"$face\""; }
+            unshift( @tg_ex, "<font$size$color$face>" );
+            unshift( @tg_ed, "</font>" );
+        }
 
-	}
+        foreach (@tg_ex) {
+            $com1 = "$_" . "$com1" . "$tg_ed[$tg_ex]";
+            ++$tg_ex;
+        }
+        $com1 =~ s/value=moe_vt/value="$com2"/;
+        push( @pcom, $com1 );
 
-	$tgrp = 0;
+        $mcr_use = 1;
 
-	foreach(@pcom){
-		$_[0] =~ s/<com$tgrp>/<com$tgrp>$_<\/com$tgrp>/;
-		++$tgrp;
-	}
+    }
 
-	return($_[0]);
+    $tgrp = 0;
+
+    foreach (@pcom) {
+        $_[0] =~ s/<com$tgrp>/<com$tgrp>$_<\/com$tgrp>/;
+        ++$tgrp;
+    }
+
+    return ( $_[0] );
 
 }
 
-sub tg_de{
+sub tg_de {
 
-	local($size,$color,$face);
+    local ( $size, $color, $face );
 
-	$tgrp = 0;
-	@pcom = ();
+    $tgrp = 0;
+    @pcom = ();
 
-	$_[0] =~ s/<img src="$icon_dir([^"]+)">/\/$1\//g;
+    $_[0] =~ s/<img src="$icon_dir([^"]+)">/\/$1\//g;
 
-	while($_[0] =~ /<img ([^>]+) src="$icon_dir([^"]+)">/){
+    while ( $_[0] =~ /<img ([^>]+) src="$icon_dir([^"]+)">/ ) {
 
-		$imcd = $ch_css = "";@ch_css =();
-		$imcs = "$1";
-		@imcs = split(/ /,$imcs);
+        $imcd   = $ch_css = "";
+        @ch_css = ();
+        $imcs   = "$1";
+        @imcs   = split( / /, $imcs );
 
-		foreach(@imcs){
-			if($_ =~ /onmouseover.+'$icon_dir(.+)'/){push(@ch_css,"IN($1)");}
-			elsif($_ =~ /onmouseout.+'$icon_dir(.+)'/){push(@ch_css,"OUT($1)");}
-			else{$imcd = "$_";}
-		}
+        foreach (@imcs) {
+            if ( $_ =~ /onmouseover.+'$icon_dir(.+)'/ ) {
+                push( @ch_css, "IN($1)" );
+            }
+            elsif ( $_ =~ /onmouseout.+'$icon_dir(.+)'/ ) {
+                push( @ch_css, "OUT($1)" );
+            }
+            else { $imcd = "$_"; }
+        }
 
-		$cs_rp = 0;
-		foreach(@itgs2){
-			if($_ eq "$imcd"){$ch_css = "$itgs1[$cs_rp]";push(@ch_css,"$ch_css");last;}
-			++$cs_rp;
-		}
+        $cs_rp = 0;
+        foreach (@itgs2) {
+            if ( $_ eq "$imcd" ) {
+                $ch_css = "$itgs1[$cs_rp]";
+                push( @ch_css, "$ch_css" );
+                last;
+            }
+            ++$cs_rp;
+        }
 
-		foreach(@ch_css){
-			if(!$ch_csss){$ch_csss = "$_";}
-			else{$ch_csss .= ",$_";}
-		}
+        foreach (@ch_css) {
+            if ( !$ch_csss ) { $ch_csss = "$_"; }
+            else             { $ch_csss .= ",$_"; }
+        }
 
-		$_[0] =~ s/<img ([^>]+) src="$icon_dir([^"]+)">/\/$ch_csss:$2\//;
-	}
+        $_[0] =~ s/<img ([^>]+) src="$icon_dir([^"]+)">/\/$ch_csss:$2\//;
+    }
 
-	if($_[0] =~ s/<input type=submit value="[^"]+"><\/form>/\[VT]/){
-		$_[0] =~ s/<input type=hidden name=vt value="[^"]+">//;
-		$_[0] =~ s/value="[^"]+"/value=moe_vt/g;
-		$_[0] =~ s/<form action.+target=_blank>//;
-	}else{
-		$_[0] =~ s/value="[^"]+"/value=moe_vt/g;
-	}
+    if ( $_[0] =~ s/<input type=submit value="[^"]+"><\/form>/\[VT]/ ) {
+        $_[0] =~ s/<input type=hidden name=vt value="[^"]+">//;
+        $_[0] =~ s/value="[^"]+"/value=moe_vt/g;
+        $_[0] =~ s/<form action.+target=_blank>//;
+    }
+    else {
+        $_[0] =~ s/value="[^"]+"/value=moe_vt/g;
+    }
 
-	push(@tgs1,"RB");
-	push(@tgs2,"ruby");
+    push( @tgs1, "RB" );
+    push( @tgs2, "ruby" );
 
-	while($_[0] =~ s/<com$tgrp>(.+)<\/com$tgrp>/<com$tgrp>/){
+    while ( $_[0] =~ s/<com$tgrp>(.+)<\/com$tgrp>/<com$tgrp>/ ) {
 
-		$base_aftg = $1;
+        $base_aftg = $1;
 
-		++$tgrp;
+        ++$tgrp;
 
-		@us_ft = ();
+        @us_ft = ();
 
-		$us_ft = $size = $color = $face = "";
+        $us_ft = $size = $color = $face = "";
 
-		$base_aftg =~ s/<rt style="color:([^"]+)">(.+)<\/rt>/\($1:$2\)/;
-		$base_aftg =~ s/<rt>(.+)<\/rt>/\($1\)/;
+        $base_aftg =~ s/<rt style="color:([^"]+)">(.+)<\/rt>/\($1:$2\)/;
+        $base_aftg =~ s/<rt>(.+)<\/rt>/\($1\)/;
 
-		if($base_aftg =~ s/<font([^>]+)>//){
-			$tg_ck = $1;
-			if($tg_ck =~ /size="([^"]+)"/){$size = $1;}
-			if($tg_ck =~ /color="([^"]+)"/){$color = $1;}
-			if($tg_ck =~ /face="([^"]+)"/){$face = $1;}
-			if($size){$size="s($size)";}
-			if($color){$color="c($color)";}
-			if($face){$face="f($face)";}
-			push(@us_ft,"F$size$color$face");
-			$base_aftg =~ s/<\/font>//;
-		}
+        if ( $base_aftg =~ s/<font([^>]+)>// ) {
+            $tg_ck = $1;
+            if ( $tg_ck =~ /size="([^"]+)"/ )  { $size  = $1; }
+            if ( $tg_ck =~ /color="([^"]+)"/ ) { $color = $1; }
+            if ( $tg_ck =~ /face="([^"]+)"/ )  { $face  = $1; }
+            if ($size)                         { $size  = "s($size)"; }
+            if ($color)                        { $color = "c($color)"; }
+            if ($face)                         { $face  = "f($face)"; }
+            push( @us_ft, "F$size$color$face" );
+            $base_aftg =~ s/<\/font>//;
+        }
 
-		$tgs_cn = 0;
-		foreach(@tgs2){
-			if($base_aftg =~ s/<$_>//){
-				$base_aftg =~ s/<\/$_>//;
-				push(@us_ft,"$tgs1[$tgs_cn]");
-			}
-			++$tgs_cn;
-		}
+        $tgs_cn = 0;
+        foreach (@tgs2) {
+            if ( $base_aftg =~ s/<$_>// ) {
+                $base_aftg =~ s/<\/$_>//;
+                push( @us_ft, "$tgs1[$tgs_cn]" );
+            }
+            ++$tgs_cn;
+        }
 
-		foreach(@us_ft){
-			if(!$us_ft){
-				$us_ft = "$_";
-			}else{
-				$us_ft = "$us_ft,$_";
-			}
-		}
-		$base_aftg = "[$us_ft:$base_aftg]";
-		push(@pcom,$base_aftg);
-	}
+        foreach (@us_ft) {
+            if ( !$us_ft ) {
+                $us_ft = "$_";
+            }
+            else {
+                $us_ft = "$us_ft,$_";
+            }
+        }
+        $base_aftg = "[$us_ft:$base_aftg]";
+        push( @pcom, $base_aftg );
+    }
 
-	$tgrp = 0;
+    $tgrp = 0;
 
-	foreach(@pcom){
-		$_[0] =~ s/<com$tgrp>/$_/;
-		++$tgrp;
-	}
+    foreach (@pcom) {
+        $_[0] =~ s/<com$tgrp>/$_/;
+        ++$tgrp;
+    }
 
-	return($_[0]);
+    return ( $_[0] );
 }
 
+sub fll {
+    $tmpfile = shift(@_);
+    $log_f   = shift(@_);
+    foreach ( 1 .. 10 ) {
+        unless ( -e $tmpfile ) { last; }
+        sleep(1);
+    }
+    $tmp_1 = "$$\.tmp";
 
-sub fll{
-	$tmpfile = shift(@_);
-	$log_f = shift(@_);
-	foreach (1 .. 10) {
-		unless (-e $tmpfile) {last;}
-		sleep(1);
-	}
-	$tmp_1 = "$$\.tmp";
+    #open(TMP,">$tmp_1") || &error("TMPファイル書きこみ失敗ヽ(´ー｀)ノ");
+    sysopen( TMP, "$tmp_1", O_WRONLY | O_TRUNC | O_CREAT )
+        || &error("TMPファイル書きこみ失敗ヽ(´ー｀)ノ");
+    print TMP @_;
+    close(TMP);
 
-	#open(TMP,">$tmp_1") || &error("TMPファイル書きこみ失敗ヽ(´ー｀)ノ");
-	sysopen(TMP,"$tmp_1",O_WRONLY | O_TRUNC | O_CREAT ) || &error("TMPファイル書きこみ失敗ヽ(´ー｀)ノ");
-	print TMP @_;
-	close(TMP);
-
-	foreach (1 .. 10) {
-		if (link($tmp_1,$tmpfile)) {
-			rename($tmpfile,$log_f); 
-			chmod(oct($vt_pm),$log_f);
-			last;
-		}
-		sleep(1);
-	}
-	unlink $tmp_1;
+    foreach ( 1 .. 10 ) {
+        if ( link( $tmp_1, $tmpfile ) ) {
+            rename( $tmpfile, $log_f );
+            chmod( oct($vt_pm), $log_f );
+            last;
+        }
+        sleep(1);
+    }
+    unlink $tmp_1;
 }
 
 sub swf {
 
-&header;
+    &header;
 
-print <<EOM;
+    print <<EOM;
 <STYLE>
 <!--
 BODY{
@@ -4568,66 +5234,72 @@ BODY{
 
 EOM
 
-print "<img src=$fwall></body></html>";
-exit;
+    print "<img src=$fwall></body></html>";
+    exit;
 }
 
-
 sub GetGifSize {
-	local($buf) = $_[0];
+    local ($buf) = $_[0];
 
-	local($GIFWidth) = ord(substr($buf,6,1)) + ord(substr($buf,7,1)) * 256;
-	local($GIFHeight) = ord(substr($buf,8,1)) + ord(substr($buf,9,1)) * 256;
-	return $GIFWidth,$GIFHeight;
+    local ($GIFWidth)
+        = ord( substr( $buf, 6, 1 ) ) + ord( substr( $buf, 7, 1 ) ) * 256;
+    local ($GIFHeight)
+        = ord( substr( $buf, 8, 1 ) ) + ord( substr( $buf, 9, 1 ) ) * 256;
+    return $GIFWidth, $GIFHeight;
 }
 
 sub GetJpegSize {
-	local($buffer) = $_[0];
+    local ($buffer) = $_[0];
 
-	local($SOFnIdx) = 2;
-	local(%SOFn) = ("\xC0", 1, "\xC1", 1, "\xC2", 1, "\xC3", 1, "\xC5", 1, 
-					"\xC6", 1, "\xC7", 1, "\xC8", 1, "\xC9", 1, "\xCA", 1, 
-					"\xCB", 1, "\xCD", 1, "\xCE", 1, "\xCF", 1);
+    local ($SOFnIdx) = 2;
+    local (%SOFn)    = (
+        "\xC0", 1, "\xC1", 1, "\xC2", 1, "\xC3", 1, "\xC5", 1,
+        "\xC6", 1, "\xC7", 1, "\xC8", 1, "\xC9", 1, "\xCA", 1,
+        "\xCB", 1, "\xCD", 1, "\xCE", 1, "\xCF", 1
+    );
 
-	local($BufLen) = length($buffer);
-	while($SOFnIdx < $BufLen){
-		$c = substr($buffer, $SOFnIdx, 1); $SOFnIdx++;
-		if($c eq "\xFF"){
-			$c = substr($buffer, $SOFnIdx, 1); $SOFnIdx++;
-			if($SOFn{$c}){
-				@SIZE = unpack("CCCC", substr($buffer, $SOFnIdx + 3, 4));
-				return $SIZE[2] * 256 + $SIZE[3],$SIZE[0] * 256 + $SIZE[1];
-			}else{
-				$c = substr($buffer, $SOFnIdx, 2);
-				@JMP = unpack("CC", $c);
-				$SOFnIdx += $JMP[0] * 256 + $JMP[1];
-			}
-		}
-	}
+    local ($BufLen) = length($buffer);
+    while ( $SOFnIdx < $BufLen ) {
+        $c = substr( $buffer, $SOFnIdx, 1 );
+        $SOFnIdx++;
+        if ( $c eq "\xFF" ) {
+            $c = substr( $buffer, $SOFnIdx, 1 );
+            $SOFnIdx++;
+            if ( $SOFn{$c} ) {
+                @SIZE = unpack( "CCCC", substr( $buffer, $SOFnIdx + 3, 4 ) );
+                return $SIZE[2] * 256 + $SIZE[3], $SIZE[0] * 256 + $SIZE[1];
+            }
+            else {
+                $c   = substr( $buffer, $SOFnIdx, 2 );
+                @JMP = unpack( "CC", $c );
+                $SOFnIdx += $JMP[0] * 256 + $JMP[1];
+            }
+        }
+    }
 }
 
 sub get_png_size {
-	local($buffer) = $_[0];
+    local ($buffer) = $_[0];
 
-	local($pos, $chunk_len, $chunk_type, @w, @h, $width, $height);
-	$chunk_len = 8;
-	while($chunk_type ne "IHDR"){
-		$pos = $chunk_len;
-		$chunk_len = substr($buffer, $pos, 4);
-		$pos += 4;
-		$chunk_type = substr($buffer, $pos, 4);
-	}
+    local ( $pos, $chunk_len, $chunk_type, @w, @h, $width, $height );
+    $chunk_len = 8;
+    while ( $chunk_type ne "IHDR" ) {
+        $pos       = $chunk_len;
+        $chunk_len = substr( $buffer, $pos, 4 );
+        $pos += 4;
+        $chunk_type = substr( $buffer, $pos, 4 );
+    }
 
-	@w = unpack("CCCC", substr($buffer, $pos + 4, 4));
-	@h = unpack("CCCC", substr($buffer, $pos + 8, 4));
-	$width = 0;
-	$height = 0;
-	$k = 3;
-	foreach(0..3){
-		$width += $w[$_] * (256 ** $k);
-		$height += $h[$_] * (256 ** $k);
-		$k--;
-	}
-	return $width,$height;
+    @w      = unpack( "CCCC", substr( $buffer, $pos + 4, 4 ) );
+    @h      = unpack( "CCCC", substr( $buffer, $pos + 8, 4 ) );
+    $width  = 0;
+    $height = 0;
+    $k      = 3;
+    foreach ( 0 .. 3 ) {
+        $width  += $w[$_] * ( 256**$k );
+        $height += $h[$_] * ( 256**$k );
+        $k--;
+    }
+    return $width, $height;
 }
 
