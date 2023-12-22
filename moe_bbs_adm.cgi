@@ -65,6 +65,7 @@ print qq(
 exit;
 
 sub pass {    # 管理用パスワードによる認証
+binmode( STDOUT, ":utf8" );
 
     #	if ($adminPass ne crypt($FORM{'plainAdminPass'},$adminPass)
     if ( $adminPass ne
@@ -84,6 +85,7 @@ sub pass {    # 管理用パスワードによる認証
 }
 
 sub changeAdminPass {    # 管理用パスワードの書き換え
+binmode( STDOUT, ":utf8" );
 
     srand(time);
     $crypted = crypt( $FORM{'newAdminPass'}, int( rand(90) ) + 10 );
@@ -123,6 +125,7 @@ sub changeAdminPass {    # 管理用パスワードの書き換え
 }
 
 sub editAdminPass {    # 管理用パスワード変更フォームの表示
+binmode( STDOUT, ":utf8" );
 
     &header;
     print qq(
@@ -142,6 +145,7 @@ sub editAdminPass {    # 管理用パスワード変更フォームの表示
 }
 
 sub changeConfig {    # 設定の書き換え
+binmode( STDOUT, ":utf8" );
 
     #open(LOG,"$Settingfile") || die;
     if ( -f "$Settingfile" ) {
@@ -205,6 +209,7 @@ sub changeConfig {    # 設定の書き換え
 }
 
 sub editConfig {
+binmode( STDOUT, ":utf8" );
 
     # 設定変更フォームの表示 #
     &form_decode;
@@ -287,6 +292,7 @@ _HTML_
         else {
             /^\$(\w+).*=.*"(.*)"/;
             print "<input type=\"hidden\" name=\"$1\" value=\"$2\">\n";
+            ## "
         }
     }
     close(LOG);
@@ -307,6 +313,8 @@ _HTML_
 
 ## --- HTMLのヘッダー
 sub header {
+binmode( STDOUT, ":utf8" );
+
     $bg_img = $in{'bg_img'};
     if ($css) {
         if    ($backgif) { $bgpic = $backgif; }
@@ -367,6 +375,8 @@ EOM
 
 ## --- HTMLのフッター
 sub footer {
+binmode( STDOUT, ":utf8" );
+
     print <<"_HTML_";
 <center>$banner2<P><small>
 <br>
@@ -387,6 +397,7 @@ _HTML_
 }
 
 sub form_decode {
+binmode( STDOUT, ":utf8" );
 
     &ReadParse;
     while ( ( $name, $value ) = each %in ) {

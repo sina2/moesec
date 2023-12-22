@@ -255,6 +255,7 @@ if ( $in{'rank'} )              { &rank; }
 
 # アイコン設定ファイル読み込み
 sub icon_exe {
+binmode( STDOUT, ":utf8" );
 
     #open(IN,"$icofile") || &error("Can't open $icofile",'NOLOCK');
     sysopen( IN, "$icofile", O_RDONLY | O_CREAT )
@@ -310,6 +311,7 @@ sub icon_exe {
 
 ## --- 記事表示部
 sub html_log {
+binmode( STDOUT, ":utf8" );
 
     # クッキーを取得
     &get_cookie;
@@ -476,6 +478,7 @@ EOM
 }
 
 sub kiji_edit {
+binmode( STDOUT, ":utf8" );
 
     if   ( $in{'page'} eq '' ) { $page = 0; }
     else                       { $page = $in{'page'}; }
@@ -812,6 +815,7 @@ sub kiji_edit {
 
 ## --- ログ書き込み処理
 sub regist {
+binmode( STDOUT, ":utf8" );
 
     # 他サイトからのアクセスを排除
     if ($base_url) {
@@ -1274,6 +1278,7 @@ sub regist {
 
 ## --- 返信フォーム
 sub res_msg {
+binmode( STDOUT, ":utf8" );
 
     # ログを読み込み
     #open(LOG,"$logfile") || &error("Can't open $logfile",'NOLOCK');
@@ -1459,6 +1464,8 @@ EOM
 
 ## --- フォームからのデータ処理
 sub form_decode {
+binmode( STDOUT, ":utf8" );
+
     &ReadParse;
     while ( ( $name, $value ) = each %in ) {
 
@@ -1550,6 +1557,8 @@ sub form_decode {
 }
 ## --- 掲示板の使い方メッセージ
 sub howto {
+binmode( STDOUT, ":utf8" );
+
     if   ( $tagkey == 0 ) { $tag_msg = "投稿内容には、<b>タグは一切使用できません。</b>\n"; }
     else                  { $tag_msg = "コメント欄には、<b>タグ使用をすることができます。</b>\n"; }
 
@@ -1589,6 +1598,8 @@ HTML
 
 ## --- ワード検索サブルーチン
 sub find {
+binmode( STDOUT, ":utf8" );
+
     &header;
     print <<"HTML";
 [<a href="$script\?cnt=no">掲示板にもどる</a>]
@@ -1700,6 +1711,7 @@ HTML
 
 ## --- ブラウザを判断しフォーム幅を調整
 sub get_agent {
+binmode( STDOUT, ":utf8" );
 
     # ブラウザ名を取得
     $agent = $ENV{'HTTP_USER_AGENT'};
@@ -1729,6 +1741,7 @@ sub get_agent {
 
 ## --- クッキーの発行
 sub set_cookie {
+binmode( STDOUT, ":utf8" );
 
     # クッキーは60日間有効
     ( $secg, $ming, $hourg, $mdayg, $mong, $yearg, $wdayg, $dmy, $dmy )
@@ -1762,6 +1775,8 @@ sub set_cookie {
 
 ## --- クッキーを取得
 sub get_cookie {
+binmode( STDOUT, ":utf8" );
+
     @pairs = split( /\;/, $ENV{'HTTP_COOKIE'} );
     foreach $pair (@pairs) {
         local ( $name, $value ) = split( /\=/, $pair );
@@ -1799,6 +1814,8 @@ sub get_cookie {
 
 ## --- エラー処理
 sub error {
+binmode( STDOUT, ":utf8" );
+
     if ( $_[1] ne '0' ) { &header; }
 
     if ( -e $lockfile && $_[1] eq "" ) { unlink($lockfile); }
@@ -1812,6 +1829,8 @@ sub error {
 
 ## --- 削除画面
 sub msg_del {
+binmode( STDOUT, ":utf8" );
+
     if ($in{'action'} eq 'admin'
         && (
             crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password )
@@ -2013,6 +2032,8 @@ sub msg_del {
 
 ## --- rank編集画面
 sub rank_rest {
+binmode( STDOUT, ":utf8" );
+
     if ( crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password ) {
         &error( "パスワードが違います", 'NOLOCK' );
     }
@@ -2248,6 +2269,8 @@ EOM
 
 ## --- 記事削除処理
 sub usr_del {
+binmode( STDOUT, ":utf8" );
+
     if ( $in{'del_key'} eq "" ) { &error( "削除キーが入力モレです",     'NOLOCK' ); }
     if ( $in{'del'} eq "" )     { &error( "ラジオボタンの選択がありません", 'NOLOCK' ); }
 
@@ -2385,6 +2408,8 @@ sub usr_del {
 
 ## --- 管理者一括記事削除
 sub admin_del {
+binmode( STDOUT, ":utf8" );
+
     if ( crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password ) {
         &error( "パスワードが違います", 'NOLOCK' );
     }
@@ -2493,6 +2518,8 @@ sub admin_del {
 
 ## --- 管理者入室画面
 sub admin {
+binmode( STDOUT, ":utf8" );
+
     &header;
     print "<center><h4>パスワードを入力してください</h4>\n";
     print "<form action=\"$script\" method=$method>\n";
@@ -2517,6 +2544,8 @@ sub admin {
 
 ## --- 時間を取得
 sub get_time {
+binmode( STDOUT, ":utf8" );
+
     $ENV{'TZ'} = "JST-9";
     ( $sec, $min, $hour, $mday, $mon, $year, $wday, $d, $d )
         = localtime(time);
@@ -2536,6 +2565,7 @@ sub get_time {
 
 ## --- カウンタ処理
 sub counter {
+binmode( STDOUT, ":utf8" );
 
     # 閲覧時のみカウントアップ
     $match = 0;
@@ -2642,6 +2672,8 @@ sub counter {
 
 ## --- カウンタロック
 sub lock3 {
+binmode( STDOUT, ":utf8" );
+
     $cnt_flag = 0;
     foreach ( 1 .. 7 ) {
         if ( -e $cntlock ) { sleep(1); }
@@ -2658,6 +2690,8 @@ sub lock3 {
 
 ## --- パスワード暗号処理
 sub passwd_encode {
+binmode( STDOUT, ":utf8" );
+
     $now = time;
     ( $p1, $p2 ) = unpack( "C2", $now );
     $wk      = $now / ( 60 * 60 * 24 * 7 ) + $p1 + $p2 - 8;
@@ -2668,6 +2702,8 @@ sub passwd_encode {
 
 ## --- パスワード照合処理
 sub passwd_decode {
+binmode( STDOUT, ":utf8" );
+
     if   ( $_[0] =~ /^\$1\$/ ) { $key = 3; }
     else                       { $key = 0; }
 
@@ -2679,6 +2715,8 @@ sub passwd_decode {
 
 ## --- HTMLのヘッダー
 sub header {
+binmode( STDOUT, ":utf8" );
+
     if ( !$pt_ck ) {
         $pt_b = $pt + 2 . 'pt';
         $pt_s = $pt - 1 . 'pt';
@@ -2757,6 +2795,8 @@ EOM
 
 ## --- HTMLのフッター
 sub footer {
+binmode( STDOUT, ":utf8" );
+
     ## MakiMakiさんの画像使用の有無に関わらずこの２箇所のリンク部を
     ## 削除することはできません。
     $footer = <<"_HTML_";
@@ -2788,6 +2828,8 @@ _HTML_
 
 ## --- 自動リンク
 sub auto_link {
+binmode( STDOUT, ":utf8" );
+
     $_[0]
         =~ s#http://([\x21-\x7e]+)#<a href="http://$1" target='_top'>http://$1</a>#g;
     $_[0]
@@ -2800,6 +2842,7 @@ sub auto_link {
 
 ## --- イメージ画像表示
 sub image {
+binmode( STDOUT, ":utf8" );
 
     $i = 0;
     $j = 0;
@@ -2957,6 +3000,8 @@ sub image {
 
 ## --- ホスト名取得
 sub get_host {
+binmode( STDOUT, ":utf8" );
+
     $host = $ENV{'REMOTE_HOST'};
     $addr = $ENV{'REMOTE_ADDR'};
 
@@ -2972,6 +3017,8 @@ sub get_host {
 #  編集画面  #
 #------------#
 sub rest {
+binmode( STDOUT, ":utf8" );
+
     if ($in{'action'} eq 'admin'
         && (
             crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password )
@@ -3164,6 +3211,8 @@ sub rest {
 
 ## --- ユーザ記事編集フォーム
 sub usr_rest {
+binmode( STDOUT, ":utf8" );
+
     if ($in{'action'} eq 'admin'
         && (
             crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password )
@@ -3402,6 +3451,8 @@ EOM
 
 ## --- ユーザ記事編集処理
 sub usr_rest2 {
+binmode( STDOUT, ":utf8" );
+
     if ($in{'action'} eq 'admin'
         && (
             crypt( $in{'pass'}, substr( $password, $salt, 2 ) ) ne $password )
@@ -3729,6 +3780,7 @@ sub usr_rest2 {
 
 ## pass認証変更
 sub pass_rest {
+binmode( STDOUT, ":utf8" );
 
     if ( $in{rest_sel} ) {
 
@@ -3869,6 +3921,8 @@ EOM
 
 #--- 管理者パスワード登録＆暗号化 --------------------------------#
 sub password {
+binmode( STDOUT, ":utf8" );
+
     $psold = $in{'password_old'};
     $pas1  = $in{'password'};
     $pas2  = $in{'password2'};
@@ -3936,6 +3990,8 @@ _HTML_
 }
 
 sub d_mode {
+binmode( STDOUT, ":utf8" );
+
     if ( $in{'ds'} || $ds ) {
         if ($ds) { $dark_side = ' checked'; }
         print <<"_HTML_";
@@ -3953,6 +4009,7 @@ _HTML_
 
 ## 新規投稿
 sub new_topic {
+binmode( STDOUT, ":utf8" );
 
     # クッキーを取得
     &get_cookie;
@@ -3962,6 +4019,7 @@ sub new_topic {
     if ($c_m_ex) { $c_m_ex = " checked"; }
     if ($bgm_up) {
         $max_dat  = int( $cgi_lib'maxdata / 1024 );
+        #'
         $bgm_ti   = "・BGM貼\り";
         $bgm_form = <<"EOM";
 <tr><td nowrap><b>貼\りBGM</b></td>
@@ -4073,8 +4131,10 @@ EOM
 
 ## 画像はっつけ投稿フォーム
 sub gazou_topic {
+binmode( STDOUT, ":utf8" );
 
     $max_dat = int( $cgi_lib'maxdata / 1024 );
+    ##'
 
     # クッキーを取得
     &get_cookie;
@@ -4175,6 +4235,7 @@ EOM
 
 ## Flash投稿
 sub flash_topic {
+binmode( STDOUT, ":utf8" );
 
     # クッキーを取得
     &get_cookie;
@@ -4267,6 +4328,7 @@ EOM
 ## 以下KENTさんの ClipBoard から流用
 
 sub UpFile {
+binmode( STDOUT, ":utf8" );
 
     # 画像処理
     $macbin = 0;
@@ -4364,6 +4426,8 @@ sub UpFile {
 
 # 最終レス日順並び替え
 sub dt_sort {
+binmode( STDOUT, ":utf8" );
+
     foreach (@lines) {
         ( $dt_knum, $dt_num, $dt_date ) = split( /<>/, $_ );
         if ($dt_num) { $nxt_key = 1; }
@@ -4402,6 +4466,7 @@ sub dt_sort {
 
 ## ランキング表示
 sub rank {
+binmode( STDOUT, ":utf8" );
 
     #open (RL,"$rank_log") || &error("Can't open $rank_log");
     sysopen( RL, "$rank_log", O_RDONLY | O_CREAT )
@@ -4761,6 +4826,8 @@ EOM
 
 # タグマクロ説明
 sub mc_ex {
+binmode( STDOUT, ":utf8" );
+
     if ( $in{ft_ex} ) {
         @wrs1 = ( '0' .. '9' );
         @wrs2 = ( 'a' .. 'z' );
@@ -4918,6 +4985,7 @@ EOM
 
 # タグマクロ
 sub tg_en {
+binmode( STDOUT, ":utf8" );
 
     local ( $size, $color, $face );
 
@@ -5079,6 +5147,7 @@ sub tg_en {
 }
 
 sub tg_de {
+binmode( STDOUT, ":utf8" );
 
     local ( $size, $color, $face );
 
@@ -5191,6 +5260,8 @@ sub tg_de {
 }
 
 sub fll {
+binmode( STDOUT, ":utf8" );
+
     $tmpfile = shift(@_);
     $log_f   = shift(@_);
     foreach ( 1 .. 10 ) {
@@ -5217,6 +5288,7 @@ sub fll {
 }
 
 sub swf {
+binmode( STDOUT, ":utf8" );
 
     &header;
 
@@ -5239,6 +5311,8 @@ EOM
 }
 
 sub GetGifSize {
+binmode( STDOUT, ":utf8" );
+
     local ($buf) = $_[0];
 
     local ($GIFWidth)
@@ -5249,6 +5323,8 @@ sub GetGifSize {
 }
 
 sub GetJpegSize {
+binmode( STDOUT, ":utf8" );
+
     local ($buffer) = $_[0];
 
     local ($SOFnIdx) = 2;
@@ -5279,6 +5355,8 @@ sub GetJpegSize {
 }
 
 sub get_png_size {
+binmode( STDOUT, ":utf8" );
+
     local ($buffer) = $_[0];
 
     local ( $pos, $chunk_len, $chunk_type, @w, @h, $width, $height );

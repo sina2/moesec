@@ -40,6 +40,7 @@ elsif ( $in{'rank'} )     { &rank; }
 
 ##
 sub rank {
+binmode( STDOUT, ":utf8" );
 
     #open (LST,"$icofile") || &error("Can't open $icofile");
     if ( -f "$icofile" ) {
@@ -203,6 +204,7 @@ EOM
 
 ##
 sub icon_del {
+binmode( STDOUT, ":utf8" );
 
     if ( !$del[0] ) { &error("チェックボックスにチェックがされてません"); }
 
@@ -367,6 +369,8 @@ sub icon_del {
 
 ##
 sub icon_reg {
+binmode( STDOUT, ":utf8" );
+
     &up_icon;
 
     #open(AD,"$passfile");
@@ -481,6 +485,7 @@ sub icon_reg {
 
 ##
 sub pre_edit {
+binmode( STDOUT, ":utf8" );
 
     &get_cookie;
     &header;
@@ -507,6 +512,8 @@ EOM
 
 ##
 sub edit {
+binmode( STDOUT, ":utf8" );
+
     if ( !$in{'name'} )          { $name_err = "お名前"; }
     if ( !$in{'pwd'} )           { $pwd_err = "削除キー"; }
     if ( $name_err || $pwd_err ) { &error("$name_err $pwd_err が未記入です"); }
@@ -671,6 +678,8 @@ EOM
 
 ##
 sub icon_add {
+binmode( STDOUT, ":utf8" );
+
     if ( ( $in{'ad_pos'} !~ /\d+/ ) || ( $in{'ad_num'} !~ /\d+/ ) ) {
         &error("追加場所と追加数は半角数字で記入して下さい");
     }
@@ -741,6 +750,8 @@ EOM
 
 ## --- HTMLのヘッダー
 sub header {
+binmode( STDOUT, ":utf8" );
+
     $bg_img = $in{'bg_img'};
     $pt_b   = $pt + 2 . 'pt';
     $pt_s   = $pt - 1 . 'pt';
@@ -805,6 +816,8 @@ EOM
 
 ## --- HTMLのフッター
 sub footer {
+binmode( STDOUT, ":utf8" );
+
     print <<"_HTML_";
 <center>$banner2<small>
 萌々ぼ〜ど2001 by えうのす ＆ R七瀬<BR>
@@ -825,6 +838,8 @@ _HTML_
 
 ## --- パスワード暗号処理
 sub pwd_en {
+binmode( STDOUT, ":utf8" );
+
     $now = time;
     ( $p1, $p2 ) = unpack( "C2", $now );
     $wk      = $now / ( 60 * 60 * 24 * 7 ) + $p1 + $p2 - 8;
@@ -836,6 +851,8 @@ sub pwd_en {
 
 ## --- パスワード照合処理
 sub pwd_de {
+binmode( STDOUT, ":utf8" );
+
     if   ( $_[0] =~ /^\$1\$/ ) { $key = 3; }
     else                       { $key = 0; }
 
@@ -848,6 +865,7 @@ sub pwd_de {
 
 ## デコード等
 sub form_decode {
+binmode( STDOUT, ":utf8" );
 
     &ReadParse;
     while ( ( $name, $value ) = each %in ) {
@@ -878,6 +896,7 @@ sub form_decode {
 
 ##
 sub up_icon {
+binmode( STDOUT, ":utf8" );
 
     &date;
 
@@ -967,6 +986,8 @@ sub up_icon {
 
 # エラー処理
 sub error {
+binmode( STDOUT, ":utf8" );
+
     &header;
     print "<center><font color=red><B>$_[0]</B></font></center>";
     print "</body></html>";
@@ -976,6 +997,7 @@ sub error {
 
 ## --- クッキーの発行
 sub set_cookie {
+binmode( STDOUT, ":utf8" );
 
     # クッキーは60日間有効
     ( $secg, $ming, $hourg, $mdayg, $mong, $yearg, $wdayg, $dmy, $dmy )
@@ -1007,6 +1029,8 @@ sub set_cookie {
 
 ## --- クッキーを取得
 sub get_cookie {
+binmode( STDOUT, ":utf8" );
+
     @pairs = split( /\;/, $ENV{'HTTP_COOKIE'} );
     foreach $pair (@pairs) {
         local ( $name, $value ) = split( /\=/, $pair );
@@ -1035,6 +1059,7 @@ sub get_cookie {
 
 ## 日時の取得
 sub date {
+binmode( STDOUT, ":utf8" );
 
     # 日時の取得
     $ENV{'TZ'} = "JST-9";
@@ -1050,6 +1075,8 @@ sub date {
 
 ##
 sub fll {
+binmode( STDOUT, ":utf8" );
+
     $tmpfile = shift(@_);
     $log_f   = shift(@_);
     foreach ( 1 .. 10 ) {
